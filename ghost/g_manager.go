@@ -18,10 +18,6 @@ type Ghostmanager struct {
 
 func (g *Ghostmanager) Start() {
 
-	g.Status.Mutex.Lock()
-	g.Status.Eng.Exec("update status_runner set Running=? where id=?", true, 1)
-	g.Status.Mutex.Unlock()
-
 	g.end = false
 
 	gc := &Ghostclient{}
@@ -65,29 +61,23 @@ func (g *Ghostmanager) Start() {
 			break
 		}
 		if g.end {
-			log.Info("ghost parser closing, found old end point")
+			log.Info("found old end point")
 			break
 		}
 	}
-
-	g.Status.Mutex.Lock()
-	g.Status.Eng.Exec("update status_runner set Running=? where id=?", false, 1)
-	g.Status.Mutex.Unlock()
+	log.Info("ghost parser closing")
 }
 
 func (g *Ghostmanager) saveReleases(releases []Release) {
-
+	log.Info("saving %d releases", len(releases))
 	for _, rel := range releases {
-		g.DB.Mutex.Lock()
-		id, err := g.DB.Eng.Insert(rel)
-		g.DB.Mutex.Unlock()
-		if err != nil && id == -1 {
+		//g.DB.Mutex.Lock()
+		_, err := g.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time)
+		if err != nil {
 			g.end = true
 			break
 		}
-		if err != nil {
-			log.Error(err.Error())
-		}
+		//g.DB.Mutex.Unlock()
 	}
 
 }
@@ -95,13 +85,13 @@ func (g *Ghostmanager) saveReleases(releases []Release) {
 func (g *Ghostmanager) init(gc *Ghostclient) error {
 
 	//create database tables
-	g.DB.Mutex.Lock()
+	//g.DB.Mutex.Lock()
 
 	if err := g.DB.Eng.CreateTables(&Release{}); err != nil {
 		log.Error(err.Error())
 	}
 
-	g.DB.Mutex.Unlock()
+	//g.DB.Mutex.Unlock()
 
 	//login to get cookies
 	err := gc.Login()

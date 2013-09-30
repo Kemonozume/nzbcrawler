@@ -108,7 +108,10 @@ func (g *Ghostclient) Login() error {
 
 //http get to the given ressource
 func (g *Ghostclient) Get(sUrl string) (*http.Response, error) {
-	log.Info("GET: %v", sUrl)
+	if strings.Contains(sUrl, "jpg") || strings.Contains(sUrl, "png") || strings.Contains(sUrl, "gif") {
+	} else {
+		log.Info("GET: %v", sUrl)
+	}
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", sUrl, nil)
 	if err != nil {

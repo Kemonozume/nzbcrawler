@@ -1,6 +1,7 @@
 package mydb
 
 import (
+	"fmt"
 	"github.com/lunny/xorm"
 	"strings"
 	"sync"
@@ -11,7 +12,7 @@ type DBLog struct {
 }
 
 type Log struct {
-	Uid                                 int `xorm:"id pk not null autoincr"`
+	Uid                                 int64 `xorm:"id pk not null autoincr"`
 	Message, Lvl, Line, Timestamp, Date string
 }
 
@@ -28,11 +29,11 @@ func (d DBLog) Write(p []byte) (int, error) {
 	log.Line = astr[4]
 	log.Message = strings.Join(astr[5:], " ")
 
-	d.DB.Mutex.Lock()
-	d.DB.Eng.Insert(log)
-	d.DB.Mutex.Unlock()
+	//d.DB.Mutex.Lock()
+	//d.DB.Eng.Insert(log)
+	//d.DB.Mutex.Unlock()
 
-	//fmt.Print(str)
+	fmt.Print(str)
 
 	return 0, nil
 }

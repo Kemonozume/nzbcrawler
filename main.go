@@ -15,7 +15,7 @@ const (
 )
 
 func main() {
-	//
+
 	//db access for releases
 	RelDB := &mydb.MyDB{}
 	RelEng, err := xorm.NewEngine("sqlite3", "./release.db")

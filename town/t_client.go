@@ -137,7 +137,11 @@ func (t *Townclient) GetDailyUrl() (string, error) {
 
 //http get to the given ressource
 func (t *Townclient) Get(sUrl string) (*http.Response, error) {
-	log.Info("GET: %v", sUrl)
+	if strings.Contains(sUrl, "jpg") || strings.Contains(sUrl, "png") || strings.Contains(sUrl, "gif") || strings.Contains(sUrl, "jpeg") {
+	} else {
+		log.Info("GET: %v", sUrl)
+	}
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", sUrl, nil)
 	if err != nil {

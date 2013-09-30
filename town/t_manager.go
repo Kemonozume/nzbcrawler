@@ -17,15 +17,18 @@ type Townmanager struct {
 }
 
 func (t *Townmanager) Start() {
-
-	t.setStatus(true)
+	log.Info("townManager start")
+	//t.setStatus(true)
 
 	t.page = 1
 	t.end = false
 
+	log.Info("townManager start1")
 	tc := &Townclient{}
 	tc.User = t.User
 	tc.Password = t.Password
+
+	log.Info("townManager start2")
 
 	err := t.init(tc)
 	log.Info("townclient init finished, starting to parse...")
@@ -73,10 +76,11 @@ func (t *Townmanager) Start() {
 			break
 		}
 		if t.end {
-			log.Info("town parser closing, found old end point")
+			log.Info("found old end point")
 			break
 		}
 	}
+	log.Info("town parser closing")
 	t.setStatus(false)
 
 }
@@ -85,38 +89,35 @@ func (t *Townmanager) setStatus(bla bool) {
 	if bla {
 
 	} else {
-		t.Status.Mutex.Lock()
-		t.Status.Eng.Exec("update status_runner set Running=? where id=?", false, 0)
-		t.Status.Mutex.Unlock()
+		//t.Status.Mutex.Lock()
+		//t.Status.Eng.Exec("update status_runner set Running=? where id=?", false, 0)
+		//t.Status.Mutex.Unlock()
 	}
 }
 
 func (t *Townmanager) saveReleases(releases []Release) {
-
+	log.Info("saving %d releases", len(releases))
 	for _, rel := range releases {
-		t.DB.Mutex.Lock()
-		id, err := t.DB.Eng.Insert(rel)
-		t.DB.Mutex.Unlock()
-		if err != nil && id == -1 {
+		//t.DB.Mutex.Lock()
+		_, err := t.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time)
+		if err != nil {
 			t.end = true
 			break
 		}
-		if err != nil {
-			log.Error(err.Error())
-		}
+		//t.DB.Mutex.Unlock()
 	}
 
 }
 
 func (t *Townmanager) init(tc *Townclient) error {
 	//create database tables
-	t.DB.Mutex.Lock()
+	//t.DB.Mutex.Lock()
 
 	if err := t.DB.Eng.CreateTables(&Release{}); err != nil {
 		log.Error(err.Error())
 	}
 
-	t.DB.Mutex.Unlock()
+	//t.DB.Mutex.Unlock()
 
 	//login to get cookies
 	err := tc.Login()

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	log "github.com/dvirsky/go-pylog/logging"
 	"github.com/gorilla/mux"
+	"github.com/howeyc/fsnotify"
 	"github.com/robfig/config"
 	"html/template"
 	_ "io/ioutil"
@@ -21,6 +22,7 @@ type Server struct {
 	RelDB    *mydb.MyDB
 	LogDB    *mydb.MyDB
 	StatusDB *mydb.MyDB
+	Watcher  *fsnotify.Watcher
 }
 
 type Conf struct {
@@ -31,7 +33,25 @@ var server *Server
 var runner *Runner
 var Cht chan bool
 var Chg chan bool
-var templates = template.Must(template.ParseFiles("templates/index.html", "templates/status.html", "templates/log.html", "templates/config.html"))
+var templates *template.Template
+
+func (s *Server) WatchFiles() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Info("recovered from panic")
+			s.WatchFiles()
+		}
+	}()
+	for {
+		select {
+		case <-s.Watcher.Event:
+			templates = template.Must(template.ParseFiles("templates/index.html", "templates/status.html", "templates/log.html", "templates/config.html"))
+		case err := <-s.Watcher.Error:
+			log.Info(err.Error())
+		}
+	}
+
+}
 
 func (s *Server) Init() {
 
@@ -42,6 +62,22 @@ func (s *Server) Init() {
 	if err != nil {
 		log.Info(err.Error())
 		return
+	}
+
+	templates = template.Must(template.ParseFiles("templates/index.html", "templates/status.html", "templates/log.html", "templates/config.html"))
+
+	//watch file changes
+	var err_tmp error
+	s.Watcher, err_tmp = fsnotify.NewWatcher()
+	if err_tmp != nil {
+		log.Info(err_tmp.Error())
+	}
+
+	go s.WatchFiles()
+
+	err = s.Watcher.Watch("templates")
+	if err != nil {
+		log.Info(err.Error())
 	}
 
 	//start Runner...
@@ -92,12 +128,15 @@ func GetRelease(w http.ResponseWriter, r *http.Request) {
 	log.Info("getRelease()")
 	vars := mux.Vars(r)
 	offset, err := strconv.Atoi(vars["offset"])
+	log.Info("offset: %d", offset)
 	var all []town.Release
 
 	//server.RelDB.Mutex.Lock()
-	server.RelDB.Eng.Limit(50, offset).OrderBy("time DESC").Find(&all)
+	log.Info("db wat..")
+	server.RelDB.Eng.Limit(200, offset).OrderBy("time DESC").Find(&all)
 	//server.RelDB.Mutex.Unlock()
 
+	log.Info("length: %d", len(all))
 	b, err := json.Marshal(all)
 	if err != nil {
 		log.Error(err.Error())
@@ -119,7 +158,7 @@ func GetReleaseWithTag(w http.ResponseWriter, r *http.Request) {
 	} else {
 		cb := &CMDBuilder{}
 		command = cb.Tokenize(tags)
-		command += " ORDER BY time DESC LIMIT 50 OFFSET " + offset
+		command += " ORDER BY time DESC LIMIT 200 OFFSET " + offset
 	}
 
 	//server.RelDB.Mutex.Lock()
@@ -151,15 +190,15 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 	command := ""
 	if tags == "none" && name != "none" {
 		log.Info("%s", name)
-		command = "select * from release where name LIKE '%" + name + "%' ORDER BY time DESC LIMIT 50 OFFSET " + offset
+		command = "select * from release where name LIKE '%" + name + "%' ORDER BY time DESC LIMIT 200 OFFSET " + offset
 	} else if name == "none" && tags != "none" {
 		cb := &CMDBuilder{}
 		command = cb.Tokenize(tags)
-		command += " ORDER BY time DESC LIMIT 50 OFFSET " + offset
+		command += " ORDER BY time DESC LIMIT 200 OFFSET " + offset
 	} else if name != "none" && tags != "none" {
 		cb := &CMDBuilder{}
 		command = cb.Tokenize(tags)
-		command += "AND name LIKE '%" + name + "%' ORDER BY time DESC LIMIT 50 OFFSET " + offset
+		command += "AND name LIKE '%" + name + "%' ORDER BY time DESC LIMIT 200 OFFSET " + offset
 	}
 
 	if command != "" {

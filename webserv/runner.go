@@ -3,8 +3,7 @@ package webserv
 import (
 	"./../ghost"
 	"./../town"
-	"errors"
-	"fmt"
+	_ "fmt"
 	log "github.com/dvirsky/go-pylog/logging"
 	"time"
 )
@@ -32,53 +31,48 @@ func (r *Runner) Init() {
 	r.Server.StatusDB.Mutex.Unlock()
 }
 
-func (r *Runner) checkTown() error {
+func (r *Runner) checkTown() bool {
 	if r.Server.Config2.TownName == "" {
-		return errors.New("no town login information (Name missing)")
+		return false
 	}
 	if r.Server.Config2.TownPassword == "" {
-		return errors.New("no town login information (Password missing)")
+		return false
 	}
-	return nil
+	return true
 }
 
-func (r *Runner) checkGhost() error {
+func (r *Runner) checkGhost() bool {
 	if r.Server.Config2.GhostName == "" {
-		return errors.New("no ghost login information (Name missing)")
+		return false
 	}
 	if r.Server.Config2.GhostPassword == "" {
-		return errors.New("no ghost login information (Password missing)")
+		return false
 	}
-	return nil
+	return true
 }
 
 func (r *Runner) updateTime(id int, duration time.Duration) {
-	soon := time.Now().Add(duration)
-	r.Server.StatusDB.Mutex.Lock()
-	r.Server.StatusDB.Eng.Exec("update status_runner set next_run=? where id=?", fmt.Sprintf("next crawl: %v:%v", soon.Hour(), soon.Minute()), id)
-	r.Server.StatusDB.Mutex.Unlock()
+	//soon := time.Now().Add(duration)
+	//r.Server.StatusDB.Mutex.Lock()
+	//r.Server.StatusDB.Eng.Exec("update status_runner set next_run=? where id=?", fmt.Sprintf("next crawl: %v:%v", soon.Hour(), soon.Minute()), id)
+	//r.Server.StatusDB.Mutex.Unlock()
 }
 
 func (r *Runner) Start() {
-
 	go func() {
 		timeout := time.Second * 1
 		for {
 			select {
 			case <-time.After(timeout):
-				err := r.checkTown()
-				if err != nil {
+				if !r.checkTown() {
 					timeout = time.Minute * 1
-					r.updateTime(0, timeout)
-					log.Info(err.Error())
 					log.Info("town: trying login again in %v minute", timeout)
 				} else {
 					tm := town.Townmanager{User: r.Server.Config2.TownName, Password: r.Server.Config2.TownPassword, DB: r.Server.RelDB, Status: r.Server.StatusDB}
 					go tm.Start()
-					c := time.Tick(time.Minute * 45)
+					c := time.Tick(time.Minute * 30)
 					for _ = range c {
-						r.updateTime(0, time.Minute*45)
-						tm = town.Townmanager{User: r.Server.Config2.TownName, Password: r.Server.Config2.TownPassword, DB: r.Server.RelDB, Status: r.Server.StatusDB}
+						log.Info("tick start town")
 						go tm.Start()
 					}
 				}
@@ -88,23 +82,19 @@ func (r *Runner) Start() {
 		return
 	}()
 	go func() {
-		timeout := time.Second * 1
+		timeout := time.Second * 2
 		for {
 			select {
 			case <-time.After(timeout):
-				err := r.checkTown()
-				if err != nil {
+				if !r.checkTown() {
 					timeout = time.Minute * 1
-					r.updateTime(1, timeout)
-					log.Info(err.Error())
 					log.Info("ghost: trying to login again in %v minute", timeout)
 				} else {
 					gm := ghost.Ghostmanager{User: r.Server.Config2.GhostName, Password: r.Server.Config2.GhostPassword, DB: r.Server.RelDB, Status: r.Server.StatusDB}
 					go gm.Start()
-					c := time.Tick(time.Minute * 45)
+					c := time.Tick(time.Minute * 30)
 					for _ = range c {
-						r.updateTime(1, time.Minute*45)
-						gm = ghost.Ghostmanager{User: r.Server.Config2.GhostName, Password: r.Server.Config2.GhostPassword, DB: r.Server.RelDB, Status: r.Server.StatusDB}
+						log.Info("tick start ghost")
 						go gm.Start()
 					}
 				}
@@ -114,49 +104,3 @@ func (r *Runner) Start() {
 		return
 	}()
 }
-
-/*
-func (r *Runner) Start() {
-	var tm *town.Townmanager
-	var gm *ghost.Ghostmanager
-
-	timeout := time.Second * 0
-	timeout2 := time.Second * 120
-	for {
-		select {
-		case <-time.After(timeout):
-			log.Info("town timeout should be running now")
-			timeout = time.Minute * 45
-			r.updateTime(0, timeout)
-			err := r.checkTown()
-			if err == nil {
-				tm = nil
-				tm = &town.Townmanager{User: r.Server.Config2.TownName, Password: r.Server.Config2.TownPassword, DB: r.Server.RelDB, Status: r.Server.StatusDB}
-				go tm.Start()
-			} else {
-				timeout = time.Minute * 1
-				r.updateTime(0, timeout)
-				log.Info(err.Error())
-				log.Info("town: trying login again in %v minute", timeout)
-			}
-		case <-time.After(timeout2):
-			log.Info("ghost timeout should be running now")
-			timeout2 = time.Minute * 49
-			r.updateTime(1, timeout2)
-			err := r.checkGhost()
-			if err == nil {
-				gm = nil
-				gm = &ghost.Ghostmanager{User: r.Server.Config2.GhostName, Password: r.Server.Config2.GhostPassword, DB: r.Server.RelDB, Status: r.Server.StatusDB}
-				go gm.Start()
-			} else {
-				timeout2 = time.Minute * 1
-				r.updateTime(1, timeout2)
-				log.Info(err.Error())
-				log.Info("ghost: trying to login again in %v minute", timeout2)
-			}
-
-		}
-	}
-}
-
-*/

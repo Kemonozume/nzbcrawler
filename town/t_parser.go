@@ -13,10 +13,12 @@ import (
 )
 
 type Release struct {
-	Checksum       string `xorm:"pk not null"`
-	Url, Name, Tag string
-	Time           int64
-	Image          string `xorm:"-"`
+	Checksum string `xorm:"pk not null"`
+	Url      string
+	Name     string
+	Tag      string
+	Time     int64
+	Image    string `xorm:"-"`
 }
 
 type Townparser struct {
