@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"github.com/dustin/goquery"
 	log "github.com/dvirsky/go-pylog/logging"
+	"github.com/nfnt/resize"
+	"image/jpeg"
+	"image/png"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -102,9 +105,35 @@ func (t *Townparser) downloadImage(url string, name string) error {
 			log.Error(err.Error())
 			return err
 		}
-		bv, _ := ioutil.ReadAll(resp.Body)
+		if strings.Contains(url, "jpg") || strings.Contains(url, "jpeg") {
+			img, _ := jpeg.Decode(resp.Body)
+			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
+			out, err := os.Create("templates/images/" + name + ".jpg")
+			if err != nil {
+				log.Info(err.Error())
+				return nil
+			}
 
-		ioutil.WriteFile("templates/images/"+name+".jpg", bv, 0777)
+			// write new image to file
+			jpeg.Encode(out, m, nil)
+			out.Close()
+		} else {
+			log.Info(url)
+			img, err := png.Decode(resp.Body)
+			if err != nil {
+				log.Error(err.Error())
+			}
+			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
+			out, err := os.Create("templates/images/" + name + ".png")
+			if err != nil {
+				log.Info(err.Error())
+				return nil
+			}
+
+			// write new image to file
+			jpeg.Encode(out, m, nil)
+			out.Close()
+		}
 	}
 	time.Sleep(200 * time.Millisecond)
 	return nil

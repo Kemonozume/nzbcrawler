@@ -6,7 +6,9 @@ import (
 	"encoding/hex"
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/dvirsky/go-pylog/logging"
-	"io/ioutil"
+	"github.com/nfnt/resize"
+	"image/jpeg"
+	"image/png"
 	"os"
 	"regexp"
 	"strconv"
@@ -114,9 +116,40 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 			log.Error(err.Error())
 			return
 		}
-		bv, _ := ioutil.ReadAll(resp.Body)
+		if strings.Contains(imgurl, "jpg") || strings.Contains(imgurl, "jpeg") {
+			img, err := jpeg.Decode(resp.Body)
+			if err != nil {
+				log.Error(err.Error())
+				return
+			}
+			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
+			out, err := os.Create("templates/images/" + name + ".jpg")
+			if err != nil {
+				log.Info(err.Error())
+				return
+			}
 
-		ioutil.WriteFile("templates/images/"+name+".jpg", bv, 0777)
+			// write new image to file
+			jpeg.Encode(out, m, nil)
+			out.Close()
+		} else {
+			log.Info(imgurl)
+			img, err := png.Decode(resp.Body)
+			if err != nil {
+				log.Error(err.Error())
+				return
+			}
+			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
+			out, err := os.Create("templates/images/" + name + ".png")
+			if err != nil {
+				log.Info(err.Error())
+				return
+			}
+
+			// write new image to file
+			jpeg.Encode(out, m, nil)
+			out.Close()
+		}
 	}
 	time.Sleep(200 * time.Millisecond)
 	return
