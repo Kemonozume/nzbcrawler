@@ -4,7 +4,7 @@
 	<title>main</title>
 	<link rel="stylesheet" type="text/css" href="public/css/bootstrap.css" />
 	<link rel="stylesheet" type="text/css" href="public/css/bootstrap-glyphicons.css" />
-	<link href='http://fonts.googleapis.com/css?family=Droid+Sans' rel='stylesheet' type='text/css'>
+	<link href='http://fonts.googleapis.com/css?family=Rationale' rel='stylesheet' type='text/css'>
     <script type="text/javascript" src="public/js/jquery-1.8.3.min.js"></script>
     <script type="text/javascript" src="public/js/underscore-min.js"></script>
 
@@ -215,7 +215,7 @@
 			  	var name = val.Name
 			  	if (name.length > 30)
 			  		name = name.substr(0, 29)
-			  	var str = "<a href=\""+val.Url+"\"><div class=\"crop\"><p>"+name+"</p><img title=\""+val.Name+"\" src=\"images/"+val.Checksum.replace(/\//g, "_")+".jpg\" onError=\"this.onerror=null;this.src='http://placehold.it/150x150';\"/></div></a>";
+			  	var str = "<a href=\""+val.Url+"\"><div class=\"crop\"><p>"+name+"</p><img title=\""+val.Name+"\" src=\"images/"+val.Checksum.replace(/\//g, "_")+".jpg\" onError=\"this.onerror=null;this.src='http://placehold.it/300x150';\"/></div></a>";
 			  	$(str).appendTo("#tcont");
 			  	if(data.length-1 == key) {
 			  		offset+=200
@@ -234,8 +234,8 @@
 
 	body {
 		background-color: #000; 
-		font-size: 13px;
-		font-family: 'Droid Sans', sans-serif;
+		font-size: 15px;
+		font-family: 'Rationale', sans-serif;
    		font-weight: 300;
    		overflow: hidden;
 	}
@@ -256,12 +256,11 @@
 	}
 
 	.crop img {
-	    width: 200px;
-	    height: 250px; 
 	    position: absolute;
     	top: 0;
     	left: 0;
     	z-index: 0;
+    	margin-left: -86px;
     	margin-top: -50px;
 	}
 
@@ -271,7 +270,7 @@
     	left: 0; 
     	z-index: 1;
     	color: #C9C9C9;
-    	font-size: 12px;
+    	font-size: 13px;
     	background: rgba(0,0,0,0.9);
     	padding: 5px;
     	margin: 0px;
@@ -301,14 +300,14 @@
 		color: #8C9FD9;
 		border-color: #181818;
 		background-color: #181818;
-		font-size: 11px;
+		font-size: 13px;
 	}
 
 	#nav1 .form-control {
 		color: #C9C9C9;
 		height: 20px;
 		background-color: #181818;
-		font-size: 11px;
+		font-size: 13px;
 		border-radius: 0px;
 		border-color: #181818;
 		box-shadow: 0 0px 0px rgba(0, 0, 0, 1) inset, 0 0 0px rgba(126, 239, 104, 1);
@@ -316,14 +315,14 @@
 	}
 
 	.linkgroup {
-		font-size: 11px;
+		font-size: 13px;
 		color: #8C9FD9;
 		margin-left: -100px;
 		margin-top: 5px;
 	}
 
 	.linkgroup2 {
-		font-size: 11px;
+		font-size: 13px;
 		color: #8C9FD9;
 		margin-left: -100px;
 		margin-top: 9px;
