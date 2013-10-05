@@ -117,7 +117,7 @@ func (t *Townparser) downloadImage(url string, name string) error {
 			// write new image to file
 			jpeg.Encode(out, m, nil)
 			out.Close()
-		} else {
+		} else if strings.Contains(url, "png") {
 			log.Info(url)
 			img, err := png.Decode(resp.Body)
 			if err != nil {

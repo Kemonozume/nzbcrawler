@@ -101,6 +101,7 @@ func (s *Server) Init() {
 	//logs
 	r.HandleFunc("/log", LogHandler)
 	r.HandleFunc("/log/{offset:[0-9]+}", GetLogs).Methods("GET")
+	r.HandleFunc("/log/{offset:[0-9]+}/{level}", GetLogsWithLevel).Methods("GET")
 	r.HandleFunc("/log/clearlogs", ClearLogs).Methods("POST")
 
 	//config
@@ -270,6 +271,26 @@ func GetLogs(w http.ResponseWriter, r *http.Request) {
 
 	//server.LogDB.Mutex.Lock()
 	server.LogDB.Eng.Limit(50, offset).OrderBy("id DESC").Find(&all)
+	//server.LogDB.Mutex.Unlock()
+
+	by, err := json.Marshal(all)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	fmt.Fprintf(w, string(by))
+
+}
+
+func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	offset, err := strconv.Atoi(vars["offset"])
+	level := vars["level"]
+
+	var all []mydb.Log
+
+	//server.LogDB.Mutex.Lock()
+	server.LogDB.Eng.Limit(50, offset).OrderBy("id DESC").Where("Lvl = ?", level).Find(&all)
 	//server.LogDB.Mutex.Unlock()
 
 	by, err := json.Marshal(all)

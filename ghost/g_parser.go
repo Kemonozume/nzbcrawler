@@ -132,7 +132,7 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 			// write new image to file
 			jpeg.Encode(out, m, nil)
 			out.Close()
-		} else {
+		} else if strings.Contains(imgurl, "png") {
 			log.Info(imgurl)
 			img, err := png.Decode(resp.Body)
 			if err != nil {
