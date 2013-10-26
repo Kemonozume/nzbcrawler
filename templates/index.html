@@ -118,7 +118,7 @@
 		    var currPos=document.getElementById('tcont').offsetTop;
 		    var amount2 = currPos *-1;
 
-		    if(amount2 > $("#tcont").outerHeight()-700 ) {
+		    if(amount2 > $("#tcont").outerHeight()-1800 ) {
 		    	console.log("addUI()");
 		    	addUI();
 		    }
@@ -215,7 +215,7 @@
 			  	var name = val.Name
 			  	if (name.length > 30)
 			  		name = name.substr(0, 29)
-			  	var str = "<a href=\""+val.Url+"\"><div class=\"crop\"><p>"+name+"</p><img title=\""+val.Name+"\" src=\"images/"+val.Checksum.replace(/\//g, "_")+".jpg\" onError=\"this.onerror=null;this.src='http://placehold.it/300x150';\"/></div></a>";
+			  	var str = "<a href=\""+val.Url+"\"><div class=\"crop\"><p>"+name+"</p><img title=\""+val.Name+"\" src=\"images/"+val.Checksum.replace(/\//g, "_")+".jpg\" onError=\"this.onerror=null;this.src='images/404.jpg';\"/></div></a>";
 			  	$(str).appendTo("#tcont");
 			  	if(data.length-1 == key) {
 			  		offset+=200
@@ -256,12 +256,8 @@
 	}
 
 	.crop img {
-	    position: absolute;
-    	top: 0;
-    	left: 0;
-    	z-index: 0;
-    	margin-left: -86px;
-    	margin-top: -50px;
+    	margin-top: -20px;
+    	width: 128px;
 	}
 
 	.crop p {
@@ -365,8 +361,8 @@
 		    	<div class="spacer"></div>
 		    </div>
 		    <div class="col-md-2">
-		    	<div class="linkgroup">[<a href="#" id="movpicker">mov hd</a>] [<a href="#" id="cinpicker">cine hd</a>] [<a href="#" id="pcpicker">pc</a>] [<a href="#" id="serienpicker">serie hd</a>]</div>
-		    	<div class="linkgroup2">[<a href="#">main</a>] [<a href="/log">logs</a>] [<a href="/config">config</a>] [<a href="/status">status</a>]</div>
+		    	<div class="linkgroup">[<a id="movpicker">mov hd</a>] [<a id="cinpicker">cine hd</a>] [<a id="pcpicker">pc</a>] [<a id="serienpicker">serie hd</a>]</div>
+		    	<div class="linkgroup2">[<a>main</a>] [<a href="/log">logs</a>] [<a href="/config">config</a>] [<a href="/status">status</a>]</div>
 		    </div>
 	    </div>
     </div>

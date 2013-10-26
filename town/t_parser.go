@@ -56,6 +56,7 @@ func (t *Townparser) ParsePageCount() (int, error) {
 		log.Error(err.Error())
 		return 0, err
 	}
+	defer resp.Body.Close()
 
 	bv, _ := ioutil.ReadAll(resp.Body)
 	node, err := goquery.ParseString(toUtf8(bv))
@@ -90,6 +91,12 @@ func (t *Townparser) ParsePageCount() (int, error) {
 
 //download image from town
 func (t *Townparser) downloadImage(url string, name string) error {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Info("recovered from panic")
+			return
+		}
+	}()
 	if url == "0" {
 		return nil
 	}
@@ -105,6 +112,7 @@ func (t *Townparser) downloadImage(url string, name string) error {
 			log.Error(err.Error())
 			return err
 		}
+		defer resp.Body.Close()
 		if strings.Contains(url, "jpg") || strings.Contains(url, "jpeg") {
 			img, _ := jpeg.Decode(resp.Body)
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
@@ -158,6 +166,7 @@ func (t *Townparser) ParseReleases(flush bool) error {
 			log.Error(err.Error())
 			return err
 		}
+		defer resp.Body.Close()
 
 		bv, _ := ioutil.ReadAll(resp.Body)
 		t.Site = bv

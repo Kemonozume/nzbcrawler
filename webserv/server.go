@@ -7,34 +7,41 @@ import (
 	"fmt"
 	log "github.com/dvirsky/go-pylog/logging"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"github.com/howeyc/fsnotify"
 	"github.com/robfig/config"
 	"html/template"
-	_ "io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
 type Server struct {
-	Config   *config.Config
-	Config2  *Conf
-	RelDB    *mydb.MyDB
-	LogDB    *mydb.MyDB
-	StatusDB *mydb.MyDB
-	Watcher  *fsnotify.Watcher
+	Config  *config.Config
+	Config2 *Conf
+	RelDB   *mydb.MyDB
+	LogDB   *mydb.MyDB
+	Watcher *fsnotify.Watcher
 }
 
 type Conf struct {
-	Host, Port, TownName, TownPassword, GhostName, GhostPassword string
+	Host          string
+	Port          string
+	TownName      string
+	TownPassword  string
+	GhostName     string
+	GhostPassword string
+	Key           string
+	Secret        string
+	Crawl         bool
 }
 
 var server *Server
 var runner *Runner
-var Cht chan bool
-var Chg chan bool
 var templates *template.Template
+var store *sessions.CookieStore
 
+//enables live editing of the templates
 func (s *Server) WatchFiles() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -45,7 +52,7 @@ func (s *Server) WatchFiles() {
 	for {
 		select {
 		case <-s.Watcher.Event:
-			templates = template.Must(template.ParseFiles("templates/index.html", "templates/status.html", "templates/log.html", "templates/config.html"))
+			templates = template.Must(template.ParseFiles("templates/index.html", "templates/log.html"))
 		case err := <-s.Watcher.Error:
 			log.Info(err.Error())
 		}
@@ -55,16 +62,16 @@ func (s *Server) WatchFiles() {
 
 func (s *Server) Init() {
 
-	Cht = make(chan bool)
-	Chg = make(chan bool)
+	s.readConfig()
 
-	err := s.readConfig()
-	if err != nil {
-		log.Info(err.Error())
-		return
+	store = sessions.NewCookieStore([]byte(s.Config2.Secret))
+	store.Options = &sessions.Options{
+		Path:   "/",
+		Domain: "",
+		MaxAge: 86400 * 7,
 	}
 
-	templates = template.Must(template.ParseFiles("templates/index.html", "templates/status.html", "templates/log.html", "templates/config.html"))
+	templates = template.Must(template.ParseFiles("templates/index.html", "templates/log.html"))
 
 	//watch file changes
 	var err_tmp error
@@ -75,28 +82,23 @@ func (s *Server) Init() {
 
 	go s.WatchFiles()
 
-	err = s.Watcher.Watch("templates")
+	err := s.Watcher.Watch("templates")
 	if err != nil {
 		log.Info(err.Error())
 	}
 
 	//start Runner...
-	runner = &Runner{s, Cht, Chg}
-	runner.Init()
-	go runner.Start()
+	if s.Config2.Crawl {
+		runner = &Runner{s}
+		go runner.Start()
+	}
 
 	server = s
 	r := mux.NewRouter()
+
 	//browse
 	r.HandleFunc("/", HomeHandler)
-	r.HandleFunc("/db/{offset:[0-9]+}/", GetRelease)
-	r.HandleFunc("/db/{offset:[0-9]+}/{tags}", GetReleaseWithTag)
-	r.HandleFunc("/db/{offset:[0-9]+}/none/none", GetRelease)
 	r.HandleFunc("/db/{offset:[0-9]+}/{tags}/{name}", GetReleaseWithTagAndName)
-
-	//status
-	r.HandleFunc("/status", StatusHandler).Methods("GET")
-	r.HandleFunc("/status/running", GetStatus)
 
 	//logs
 	r.HandleFunc("/log", LogHandler)
@@ -104,13 +106,11 @@ func (s *Server) Init() {
 	r.HandleFunc("/log/{offset:[0-9]+}/{level}", GetLogsWithLevel).Methods("GET")
 	r.HandleFunc("/log/clearlogs", ClearLogs).Methods("POST")
 
-	//config
-	r.HandleFunc("/config", ConfigHandler).Methods("GET")
-	r.HandleFunc("/config", UpdateConfig).Methods("POST")
-
 	//assets
 	r.HandleFunc("/public/{file:.+}", AssetHandler)
 	r.HandleFunc("/images/{file:.+}", ImgHandler)
+
+	r.HandleFunc("/{key}", PseudoLoginHandler)
 
 	log.Info("listening on %v:%v", s.Config2.Host, s.Config2.Port)
 	http.Handle("/", r)
@@ -119,78 +119,44 @@ func (s *Server) Init() {
 
 //BROWSE
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}
 	err := templates.ExecuteTemplate(w, "index.html", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func GetRelease(w http.ResponseWriter, r *http.Request) {
-	log.Info("getRelease()")
+func PseudoLoginHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	offset, err := strconv.Atoi(vars["offset"])
-	log.Info("offset: %d", offset)
-	var all []town.Release
+	key := vars["key"]
 
-	//server.RelDB.Mutex.Lock()
-	log.Info("db wat..")
-	server.RelDB.Eng.Limit(200, offset).OrderBy("time DESC").Find(&all)
-	//server.RelDB.Mutex.Unlock()
-
-	log.Info("length: %d", len(all))
-	b, err := json.Marshal(all)
-	if err != nil {
-		log.Error(err.Error())
-	}
-
-	fmt.Fprintf(w, string(b))
-
-}
-
-func GetReleaseWithTag(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	offset := vars["offset"]
-	tags := vars["tags"]
-
-	var command string
-	if strings.Contains(tags, "name:") {
-		name := strings.Replace(tags, "name: ", "", -1)
-		command = "select * from release where name LIKE '%" + name + "%'"
+	if key == server.Config2.Key {
+		log.Info("Login success from %v", r.RemoteAddr)
+		session, _ := store.Get(r, "top-kek")
+		session.Values["login"] = true
+		session.Save(r, w)
+		http.Redirect(w, r, "/", http.StatusFound)
 	} else {
-		cb := &CMDBuilder{}
-		command = cb.Tokenize(tags)
-		command += " ORDER BY time DESC LIMIT 200 OFFSET " + offset
+		log.Info("Login fail from %v", r.RemoteAddr)
+		http.Error(w, "forbidden", http.StatusForbidden)
 	}
 
-	//server.RelDB.Mutex.Lock()
-
-	res, err := server.RelDB.Eng.Query(command)
-	if err != nil {
-		log.Info("search with tags: %v", tags)
-	}
-	b := Response2Struct(res)
-
-	//server.RelDB.Mutex.Unlock()
-
-	by, err := json.Marshal(b)
-	if err != nil {
-		log.Error("json marshal failed %v", err.Error())
-	}
-
-	fmt.Fprintf(w, string(by))
 }
 
 func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
-	log.Info("release with tag and info")
-
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}
 	vars := mux.Vars(r)
 	offset := vars["offset"]
 	tags := vars["tags"]
 	name := vars["name"]
-	log.Info("%s %s", tags, name)
 	command := ""
 	if tags == "none" && name != "none" {
-		log.Info("%s", name)
 		command = "select * from release where name LIKE '%" + name + "%' ORDER BY time DESC LIMIT 200 OFFSET " + offset
 	} else if name == "none" && tags != "none" {
 		cb := &CMDBuilder{}
@@ -203,11 +169,8 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if command != "" {
-		log.Info(command)
-		//server.RelDB.Mutex.Lock()
 		res, _ := server.RelDB.Eng.Query(command)
 		b := Response2Struct(res)
-		//server.RelDB.Mutex.Unlock()
 		by, err := json.Marshal(b)
 		if err != nil {
 			log.Error("json marshal failed %v", err.Error())
@@ -215,12 +178,9 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Fprintf(w, string(by))
 	} else {
-		log.Info("give him all")
 		var b []town.Release
 		offset2, _ := strconv.Atoi(vars["offset"])
-		//server.RelDB.Mutex.Lock()
 		server.RelDB.Eng.Limit(50, offset2).OrderBy("time DESC").Find(&b)
-		//server.RelDB.Mutex.Unlock()
 		by, err := json.Marshal(b)
 		if err != nil {
 			log.Error("json marshal failed %v", err.Error())
@@ -231,39 +191,24 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//Status
-func StatusHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "status.html", nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func GetStatus(w http.ResponseWriter, r *http.Request) {
-	var all []StatusRunner
-
-	//server.StatusDB.Mutex.Lock()
-	server.StatusDB.Eng.Find(&all)
-	//server.StatusDB.Mutex.Unlock()
-
-	by, err := json.Marshal(all)
-	if err != nil {
-		log.Error(err.Error())
-	}
-
-	fmt.Fprintf(w, string(by))
-
-}
-
 //LOGS
 func LogHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}
 	err := templates.ExecuteTemplate(w, "log.html", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+
 }
 
 func GetLogs(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}
 	vars := mux.Vars(r)
 	offset, err := strconv.Atoi(vars["offset"])
 
@@ -283,6 +228,10 @@ func GetLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}
 	vars := mux.Vars(r)
 	offset, err := strconv.Atoi(vars["offset"])
 	level := vars["level"]
@@ -303,7 +252,10 @@ func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
 }
 
 func ClearLogs(w http.ResponseWriter, r *http.Request) {
-
+	session, _ := store.Get(r, "defer resp.Body.Close()")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}
 	worked := "worked"
 	server.LogDB.Mutex.Lock()
 	server.LogDB.Eng.Exec("drop table log")
@@ -311,80 +263,47 @@ func ClearLogs(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error())
 		worked = "failed"
 	}
+
+	server.LogDB.Eng.Exec("vacuum")
 	server.LogDB.Mutex.Unlock()
 
 	fmt.Fprintf(w, worked)
-
-}
-
-//CONFIG
-func ConfigHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "config.html", server.Config2)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func UpdateConfig(w http.ResponseWriter, r *http.Request) {
-	server.Config.AddOption("default", "host", r.FormValue("Host"))
-	server.Config.AddOption("default", "port", r.FormValue("Port"))
-	server.Config.AddOption("default", "town-name", r.FormValue("TownName"))
-	server.Config.AddOption("default", "town-password", r.FormValue("TownPassword"))
-	server.Config.AddOption("default", "ghost-name", r.FormValue("GhostName"))
-	server.Config.AddOption("default", "ghost-password", r.FormValue("GhostPassword"))
-	server.readConfig()
-	server.Config.WriteFile("default.ini", 0644, "")
-
-	err := templates.ExecuteTemplate(w, "config.html", server.Config2)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
 }
 
 //ASSETS
 func AssetHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}
 	vars := mux.Vars(r)
 	file := vars["file"]
 	http.ServeFile(w, r, "templates/assets/"+file)
 }
 
 func ImgHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+	}
 	vars := mux.Vars(r)
 	file := vars["file"]
+	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 432000))
+	w.Header().Add("Content-Type", "image")
 	http.ServeFile(w, r, "templates/images/"+file)
 }
 
-func (s *Server) readConfig() (err error) {
+func (s *Server) readConfig() {
 	s.Config2 = &Conf{}
-
-	s.Config2.Port, err = s.Config.String("default", "port")
-	if err != nil {
-		log.Error(err.Error())
-		return err
-	}
-	s.Config2.Host, err = s.Config.String("default", "host")
-	if err != nil {
-		log.Error(err.Error())
-		return err
-	}
-	s.Config2.TownName, err = s.Config.String("default", "town-name")
-	if err != nil {
-		log.Error(err.Error())
-	}
-	s.Config2.TownPassword, err = s.Config.String("default", "town-password")
-	if err != nil {
-		log.Error(err.Error())
-	}
-	s.Config2.GhostName, err = s.Config.String("default", "ghost-name")
-	if err != nil {
-		log.Error(err.Error())
-	}
-	s.Config2.GhostPassword, err = s.Config.String("default", "ghost-password")
-	if err != nil {
-		log.Error(err.Error())
-	}
-	return nil
-
+	s.Config2.Port, _ = s.Config.String("default", "port")
+	s.Config2.Host, _ = s.Config.String("default", "host")
+	s.Config2.TownName, _ = s.Config.String("default", "town-name")
+	s.Config2.TownPassword, _ = s.Config.String("default", "town-password")
+	s.Config2.GhostName, _ = s.Config.String("default", "ghost-name")
+	s.Config2.GhostPassword, _ = s.Config.String("default", "ghost-password")
+	s.Config2.Key, _ = s.Config.String("default", "key")
+	s.Config2.Secret, _ = s.Config.String("default", "secret")
+	s.Config2.Crawl, _ = s.Config.Bool("default", "crawl")
 }
 
 func Response2Struct(res []map[string][]uint8) []town.Release {

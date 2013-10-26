@@ -37,16 +37,6 @@ func main() {
 	LogDB.Mutex = &sync.Mutex{}
 	LogDB.Eng.ShowSQL = false
 
-	//db for Status
-	StatusDB := &mydb.MyDB{}
-	StatusEng, err := xorm.NewEngine("sqlite3", "./status.db")
-	if err != nil {
-		panic(err.Error())
-	}
-	StatusDB.Eng = StatusEng
-	StatusDB.Mutex = &sync.Mutex{}
-	StatusDB.Eng.ShowSQL = false
-
 	//setting log
 	bla := mydb.DBLog{LogDB}
 
@@ -62,7 +52,7 @@ func main() {
 	c, _ := config.ReadDefault("default.ini")
 
 	//webserver
-	serv := &webserv.Server{Config: c, RelDB: RelDB, LogDB: LogDB, StatusDB: StatusDB}
+	serv := &webserv.Server{Config: c, RelDB: RelDB, LogDB: LogDB}
 	serv.Init()
 
 }

@@ -122,6 +122,7 @@ func (t *Townclient) GetDailyUrl() (string, error) {
 	if resp == nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	time1 := time.Now()
 	t.dumpResponse(resp, "daily"+strconv.Itoa(time1.Nanosecond()))
@@ -130,6 +131,7 @@ func (t *Townclient) GetDailyUrl() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	log.Info("daily url: %v", url.String())
 	return url.String(), nil
 

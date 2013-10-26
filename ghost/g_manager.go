@@ -4,14 +4,12 @@ import (
 	"./../mydb"
 	log "github.com/dvirsky/go-pylog/logging"
 	"strconv"
-	_ "strings"
 	"time"
 )
 
 type Ghostmanager struct {
 	User, Password, url string
 	DB                  *mydb.MyDB
-	Status              *mydb.MyDB
 	maxpage             int
 	end                 bool
 }
@@ -71,27 +69,20 @@ func (g *Ghostmanager) Start() {
 func (g *Ghostmanager) saveReleases(releases []Release) {
 	log.Info("saving %d releases", len(releases))
 	for _, rel := range releases {
-		//g.DB.Mutex.Lock()
 		_, err := g.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time)
 		if err != nil {
 			g.end = true
 			break
 		}
-		//g.DB.Mutex.Unlock()
 	}
 
 }
 
 func (g *Ghostmanager) init(gc *Ghostclient) error {
 
-	//create database tables
-	//g.DB.Mutex.Lock()
-
 	if err := g.DB.Eng.CreateTables(&Release{}); err != nil {
 		log.Error(err.Error())
 	}
-
-	//g.DB.Mutex.Unlock()
 
 	//login to get cookies
 	err := gc.Login()

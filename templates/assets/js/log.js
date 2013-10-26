@@ -52,7 +52,7 @@ function addUI() {
 			return;
 		}
 		$.each(data, function(key, val) {
-		  	$("<div class=\"row test\"><div class=\"col-md-2\">"+val.Date+" "+val.Timestamp+"</div><div class=\"col-md-1\">"+val.Lvl+"</div><div class=\"col-md-9\">"+val.Message+"</div></div>").appendTo("#tcont");
+		  	$("<div class=\"row test\"><div class=\"col-lg-2\">"+val.Date+" "+val.Timestamp+"</div><div class=\"col-lg-1\">"+val.Line+"</div><div class=\"col-lg-1\">"+val.Lvl+"</div><div class=\"col-lg-7\">"+val.Message+"</div></div>").appendTo("#tcont");
 		  	if(data.length-1 == key) {
 		  		loading = false;
 		  		offset += 50;
@@ -76,7 +76,7 @@ function moveObject(event) {
 	console.log(currPos);
 	console.log(amount2);
 
-	if(amount2 > $("#tcont").outerHeight()-700 ) {
+	if(amount2 > $("#tcont").outerHeight()-1400 ) {
 		console.log("addUI()");
 		addUI();
 	}

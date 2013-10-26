@@ -4,38 +4,31 @@ import (
 	"./../mydb"
 	log "github.com/dvirsky/go-pylog/logging"
 	"strconv"
-	_ "strings"
 	"time"
 )
 
 type Townmanager struct {
 	User, Password, url string
 	DB                  *mydb.MyDB
-	Status              *mydb.MyDB
 	page, maxpage       int
 	end                 bool
 }
 
 func (t *Townmanager) Start() {
 	log.Info("townManager start")
-	//t.setStatus(true)
 
 	t.page = 1
 	t.end = false
 
-	log.Info("townManager start1")
 	tc := &Townclient{}
 	tc.User = t.User
 	tc.Password = t.Password
-
-	log.Info("townManager start2")
 
 	err := t.init(tc)
 	log.Info("townclient init finished, starting to parse...")
 	if err != nil {
 		log.Error("Townclient init failed")
 		log.Error(err.Error())
-		t.setStatus(false)
 		return
 	}
 
@@ -44,7 +37,6 @@ func (t *Townmanager) Start() {
 	count, err := tp.ParsePageCount()
 	if err != nil {
 		log.Error(err.Error())
-		t.setStatus(false)
 		return
 	}
 	t.maxpage = count
@@ -81,43 +73,26 @@ func (t *Townmanager) Start() {
 		}
 	}
 	log.Info("town parser closing")
-	t.setStatus(false)
 
-}
-
-func (t *Townmanager) setStatus(bla bool) {
-	if bla {
-
-	} else {
-		//t.Status.Mutex.Lock()
-		//t.Status.Eng.Exec("update status_runner set Running=? where id=?", false, 0)
-		//t.Status.Mutex.Unlock()
-	}
 }
 
 func (t *Townmanager) saveReleases(releases []Release) {
 	log.Info("saving %d releases", len(releases))
 	for _, rel := range releases {
-		//t.DB.Mutex.Lock()
 		_, err := t.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time)
 		if err != nil {
 			t.end = true
 			break
 		}
-		//t.DB.Mutex.Unlock()
 	}
 
 }
 
 func (t *Townmanager) init(tc *Townclient) error {
-	//create database tables
-	//t.DB.Mutex.Lock()
 
 	if err := t.DB.Eng.CreateTables(&Release{}); err != nil {
 		log.Error(err.Error())
 	}
-
-	//t.DB.Mutex.Unlock()
 
 	//login to get cookies
 	err := tc.Login()

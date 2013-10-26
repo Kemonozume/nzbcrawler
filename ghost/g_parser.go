@@ -83,6 +83,7 @@ func (g *Ghostparser) getImageUrl(url string) (url2 string) {
 		log.Error(err.Error())
 		return url2
 	}
+	defer resp.Body.Close()
 
 	respbody, err := html.Parse(resp.Body)
 	doc := goquery.NewDocumentFromNode(respbody)
@@ -100,6 +101,12 @@ func (g *Ghostparser) getImageUrl(url string) (url2 string) {
 
 //download image from town
 func (g *Ghostparser) downloadImage(url string, name string) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Info("recovered from panic")
+			return
+		}
+	}()
 	imgurl := g.getImageUrl(url)
 	if imgurl == "" {
 		return
@@ -116,6 +123,7 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 			log.Error(err.Error())
 			return
 		}
+		defer resp.Body.Close()
 		if strings.Contains(imgurl, "jpg") || strings.Contains(imgurl, "jpeg") {
 			img, err := jpeg.Decode(resp.Body)
 			if err != nil {
@@ -199,6 +207,7 @@ func (g *Ghostparser) ParseReleases() error {
 		log.Error(err.Error())
 		return err
 	}
+	defer resp.Body.Close()
 
 	respbody, err := html.Parse(resp.Body)
 	doc := goquery.NewDocumentFromNode(respbody)
