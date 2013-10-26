@@ -30,6 +30,7 @@ func (t *Townclient) getSValue() (sValue string) {
 	sValue = ""
 	var doc *goquery.Document
 	var e error
+	log.Info("[GET] url: %v", ROOT)
 	if doc, e = goquery.NewDocument(ROOT); e != nil {
 		log.Error("couldn't connect to town")
 		return
@@ -78,6 +79,7 @@ func (t *Townclient) Login() error {
 		return err
 	}
 
+	log.Info("[POST] url: %v", LOGIN)
 	t.addHeader(req)
 
 	t.dumpRequest(req, "town_login_req")
@@ -141,7 +143,7 @@ func (t *Townclient) GetDailyUrl() (string, error) {
 func (t *Townclient) Get(sUrl string) (*http.Response, error) {
 	if strings.Contains(sUrl, "jpg") || strings.Contains(sUrl, "png") || strings.Contains(sUrl, "gif") || strings.Contains(sUrl, "jpeg") {
 	} else {
-		log.Info("GET: %v", sUrl)
+		log.Info("[GET] url: %v", sUrl)
 	}
 
 	client := &http.Client{}

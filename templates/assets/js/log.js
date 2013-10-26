@@ -37,6 +37,12 @@ $(window).load(function() {
 	})
 });
 
+String.prototype.pad = function(l, s, t){
+    return s || (s = " "), (l -= this.length) > 0 ? (s = new Array(Math.ceil(l / s.length)
+        + 1).join(s)).substr(0, t = !t ? l : t == 1 ? 0 : Math.ceil(l / 2))
+        + this + s.substr(0, l - t) : this;
+};
+
 function addUI() {
 	if(loading == true)
 		return;
@@ -52,7 +58,16 @@ function addUI() {
 			return;
 		}
 		$.each(data, function(key, val) {
-		  	$("<div class=\"row test\"><div class=\"col-lg-2\">"+val.Date+" "+val.Timestamp+"</div><div class=\"col-lg-1\">"+val.Line+"</div><div class=\"col-lg-1\">"+val.Lvl+"</div><div class=\"col-lg-7\">"+val.Message+"</div></div>").appendTo("#tcont");
+			line = val.Line;
+			line = line.pad(30, " ", 1);
+			message = val.Message;
+			if(val.Lvl == "INFO") 
+				message = "[+] "+message;
+			else 
+				message = "[-] "+message;
+			
+			console.log(line);
+		  	$("<div class=\"row\"><div>"+val.Date+"</div><div>"+val.Timestamp+"</div><span>"+line+"</span><div>"+message+"</div></div>").appendTo("#tcont");
 		  	if(data.length-1 == key) {
 		  		loading = false;
 		  		offset += 50;
@@ -60,6 +75,8 @@ function addUI() {
 		});			  
 	});
 }
+
+
 
 function moveObject(event) {
 	var delta = 0;

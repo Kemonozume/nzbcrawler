@@ -24,7 +24,8 @@ const (
 )
 
 func (g *Ghostclient) getFirstTimeShit() error {
-	log.Info("GET: Login Cookies")
+	log.Info("[GET] url: %v", LOGIN)
+	log.Info("getting cookies")
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", LOGIN, nil)
 	if err != nil {
@@ -74,6 +75,8 @@ func (g *Ghostclient) Login() error {
 		return err
 	}
 
+	log.Info("[POST] url: %v", LOGIN)
+
 	if g.cookies != nil {
 		for _, cookie := range g.cookies {
 			req.AddCookie(cookie)
@@ -110,7 +113,7 @@ func (g *Ghostclient) Login() error {
 func (g *Ghostclient) Get(sUrl string) (*http.Response, error) {
 	if strings.Contains(sUrl, "jpg") || strings.Contains(sUrl, "png") || strings.Contains(sUrl, "gif") {
 	} else {
-		log.Info("GET: %v", sUrl)
+		log.Info("[GET] url: %v", sUrl)
 	}
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", sUrl, nil)
@@ -154,10 +157,10 @@ func Redirect(req *http.Request, via []*http.Request) error {
 
 //return the Daily url or "" if something went wrong
 func (g *Ghostclient) GetDailyUrl() (string, error) {
-	log.Info("getting Daily Url for ghost")
 	client := &http.Client{
 		CheckRedirect: Redirect,
 	}
+	log.Info("[GET] url: %v", DAILY)
 	req, err := http.NewRequest("GET", DAILY, nil)
 	if err != nil {
 		log.Error(err.Error())

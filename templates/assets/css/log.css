@@ -55,10 +55,22 @@ body {
 	margin-top: -15px;
 }
 
-.test {
+.row {
+	float: left;
 	width: 100%;
-	padding-left: 5px;
+	padding-left: 23px;
 	color: #C9C9C9;
 	font-size: 12px;
 	font-family: 'Droid Sans', sans-serif;
+}
+
+.row div {
+	margin-right: 15px;
+	display: inline !important;
+}
+
+.row span {
+	width: 120px;
+	min-width: 120px;
+	display: inline-block;
 }

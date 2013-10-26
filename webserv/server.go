@@ -110,7 +110,7 @@ func (s *Server) Init() {
 	r.HandleFunc("/public/{file:.+}", AssetHandler)
 	r.HandleFunc("/images/{file:.+}", ImgHandler)
 
-	r.HandleFunc("/{key}", PseudoLoginHandler)
+	r.HandleFunc("/key/{key}", PseudoLoginHandler)
 
 	log.Info("listening on %v:%v", s.Config2.Host, s.Config2.Port)
 	http.Handle("/", r)
