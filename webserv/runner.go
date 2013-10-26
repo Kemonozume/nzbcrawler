@@ -38,12 +38,16 @@ func (r *Runner) Start() {
 			select {
 			case <-time.After(timeout):
 				if !r.checkTown() {
-					timeout = time.Minute * 1
+					timeout = time.Minute * 5
 					log.Info("town: trying login again in %v minute", timeout)
 				} else {
 					tm := town.Townmanager{User: r.Server.Config2.TownName, Password: r.Server.Config2.TownPassword, DB: r.Server.RelDB}
 					go tm.Start()
-					c := time.Tick(time.Minute * 30)
+					dur, err := time.ParseDuration(r.Server.Config2.Timeout)
+					if err != nil {
+						log.Error(err.Error())
+					}
+					c := time.Tick(dur)
 					for _ = range c {
 						log.Info("tick start town")
 						go tm.Start()
@@ -60,12 +64,16 @@ func (r *Runner) Start() {
 			select {
 			case <-time.After(timeout):
 				if !r.checkTown() {
-					timeout = time.Minute * 1
+					timeout = time.Minute * 5
 					log.Info("ghost: trying to login again in %v minute", timeout)
 				} else {
 					gm := ghost.Ghostmanager{User: r.Server.Config2.GhostName, Password: r.Server.Config2.GhostPassword, DB: r.Server.RelDB}
 					go gm.Start()
-					c := time.Tick(time.Minute * 30)
+					dur, err := time.ParseDuration(r.Server.Config2.Timeout)
+					if err != nil {
+						log.Error(err.Error())
+					}
+					c := time.Tick(dur)
 					for _ = range c {
 						log.Info("tick start ghost")
 						go gm.Start()

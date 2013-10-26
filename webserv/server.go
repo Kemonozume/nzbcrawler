@@ -33,6 +33,7 @@ type Conf struct {
 	GhostPassword string
 	Key           string
 	Secret        string
+	Timeout       string
 	Crawl         bool
 }
 
@@ -304,6 +305,7 @@ func (s *Server) readConfig() {
 	s.Config2.Key, _ = s.Config.String("default", "key")
 	s.Config2.Secret, _ = s.Config.String("default", "secret")
 	s.Config2.Crawl, _ = s.Config.Bool("default", "crawl")
+	s.Config2.Timeout, _ = s.Config.String("default", "timeout")
 }
 
 func Response2Struct(res []map[string][]uint8) []town.Release {
