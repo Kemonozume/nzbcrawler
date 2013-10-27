@@ -123,6 +123,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 	err := templates.ExecuteTemplate(w, "index.html", nil)
 	if err != nil {
@@ -151,6 +152,7 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 	vars := mux.Vars(r)
 	offset := vars["offset"]
@@ -197,6 +199,7 @@ func LogHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 	err := templates.ExecuteTemplate(w, "log.html", nil)
 	if err != nil {
@@ -209,6 +212,7 @@ func GetLogs(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 	vars := mux.Vars(r)
 	offset, err := strconv.Atoi(vars["offset"])
@@ -232,6 +236,7 @@ func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 	vars := mux.Vars(r)
 	offset, err := strconv.Atoi(vars["offset"])
@@ -256,6 +261,7 @@ func ClearLogs(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "defer resp.Body.Close()")
 	if session.Values["login"] != true {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 	worked := "worked"
 	server.LogDB.Mutex.Lock()
@@ -276,6 +282,7 @@ func AssetHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 	vars := mux.Vars(r)
 	file := vars["file"]
@@ -286,6 +293,7 @@ func ImgHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 	vars := mux.Vars(r)
 	file := vars["file"]
