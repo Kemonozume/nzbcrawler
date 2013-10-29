@@ -16,11 +16,13 @@ import (
 )
 
 type Release struct {
-	Checksum string `xorm:"pk not null"`
-	Url      string
-	Name     string
-	Tag      string
-	Time     int64
+	Checksum string `json:"checksum" xorm:"pk not null"`
+	Url      string `json:"url"`
+	Name     string `json:"name"`
+	Tag      string `json:"tag"`
+	Time     int64  `json:"time"`
+	Rating   int32  `json:"rating"`
+	Hits     int    `json:"hits"`
 	Image    string `xorm:"-"`
 }
 
@@ -209,6 +211,8 @@ func (t *Townparser) ParseReleases(flush bool) error {
 					rel.Time = time.Now().Unix()
 					rel.fillRelease()
 					if rel.Checksum != "" {
+						rel.Hits = 0
+						rel.Rating = 0
 						t.downloadImage(rel.Image, rel.Checksum)
 						t.addRelease(rel)
 					}

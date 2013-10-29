@@ -99,7 +99,9 @@ func (s *Server) Init() {
 
 	//browse
 	r.HandleFunc("/", HomeHandler)
-	r.HandleFunc("/db/{offset:[0-9]+}/{tags}/{name}", GetReleaseWithTagAndName)
+	r.HandleFunc("/db/events/{offset:[0-9]+}/{tags}/{name}", GetReleaseWithTagAndName)
+	r.HandleFunc("/db/event/{checksum}/hits", SetHit)
+	r.HandleFunc("/db/event/{checksum}/{score}", SetRating)
 
 	//logs
 	r.HandleFunc("/log", LogHandler)
@@ -192,6 +194,58 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, string(by))
 	}
 
+}
+
+func SetHit(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	vars := mux.Vars(r)
+	checksum := vars["checksum"]
+
+	var b = town.Release{Checksum: checksum}
+	has, _ := server.RelDB.Eng.Get(&b)
+	if has {
+		log.Info("increasing hits for rel: %v", checksum)
+		b.Hits += 1
+		server.RelDB.Eng.Update(&b, &town.Release{Checksum: checksum})
+	}
+
+	fmt.Fprintf(w, "ok")
+}
+
+func SetRating(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	vars := mux.Vars(r)
+	checksum := vars["checksum"]
+	score, _ := strconv.Atoi(vars["score"])
+
+	var b = town.Release{Checksum: checksum}
+	has, _ := server.RelDB.Eng.Get(&b)
+	if has {
+		log.Info("changing rating for rel: %v with score: %v", checksum, score)
+		if score == -1 {
+			b.Rating -= 1
+			if b.Rating == 0 {
+				b.Rating = -1
+			}
+		} else {
+			b.Rating += 1
+			if b.Rating == 0 {
+				b.Rating = 1
+			}
+		}
+		server.RelDB.Eng.Update(&b, &town.Release{Checksum: checksum})
+	}
+
+	fmt.Fprintf(w, "%v %v", checksum, score)
 }
 
 //LOGS

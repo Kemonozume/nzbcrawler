@@ -17,11 +17,13 @@ import (
 )
 
 type Release struct {
-	Checksum string `xorm:"pk not null"`
-	Url      string
-	Name     string
-	Tag      string
-	Time     int64
+	Checksum string `json:"checksum" xorm:"pk not null"`
+	Url      string `json:"url"`
+	Name     string `json:"name"`
+	Tag      string `json:"tag"`
+	Time     int64  `json:"time"`
+	Rating   int32  `json:"rating"`
+	Hits     int    `json:"hits"`
 	Image    string `xorm:"-"`
 }
 
@@ -226,6 +228,8 @@ func (g *Ghostparser) ParseReleases() error {
 							rel.Checksum = g.encodeName(rel.Url)
 							rel.checkQual()
 							if rel.Name != "" {
+								rel.Hits = 0
+								rel.Rating = 0
 								g.downloadImage(rel.Url, rel.Checksum)
 								g.addRelease(rel)
 							}

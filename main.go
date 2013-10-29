@@ -26,6 +26,9 @@ func main() {
 	RelDB.Mutex = &sync.Mutex{}
 	RelDB.Eng.ShowSQL = false
 
+	RelEng.Query("ALTER TABLE release ADD COLUMN hits int DEFAULT 0;")
+	RelEng.Query("ALTER TABLE release ADD COLUMN rating int DEFAULT 0;")
+
 	//db for logs
 	//different database cause of locks with high log frequency
 	LogDB := &mydb.MyDB{}

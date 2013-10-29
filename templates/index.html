@@ -199,24 +199,69 @@
     		}
     		return cmd;
     	}
+
+    	function upvote(str) {
+    		$.get("/db/event/"+str+"/1", function(data) {});
+    	}
     	
+    	function downvote(str) {
+    		$.get("/db/event/"+str+"/-1", function(data) {});
+    	}
+
+    	function hit(str, url) {
+    		$.get("/db/event/"+str+"/hits", function(data) {
+    		});
+    	}
+
+    	function showoverlay(bla) {
+    		var obj = $(bla).find(".overlay")[0]
+    		if(obj.style.display == "none") {
+    			obj.style.display = "block";
+    		}else {
+    			obj.style.display = "none";
+    		}
+    		console.log();
+    	}
 
 		function addUI() {
 			if(loading == true)
 				return;
 			loading = true;
-			console.log("/db/"+offset+"/"+getCmd());
-			$.getJSON('/db/'+offset+"/"+getCmd(), function(data) {
+			console.log("/db/events/"+offset+"/"+getCmd());
+			$.getJSON('/db/events/'+offset+"/"+getCmd(), function(data) {
 			  if($.isEmptyObject(data)) {
 			  	loading = false;
 			  	return;
 			  }
 			  $.each(data, function(key, val) {
-			  	var name = val.Name
+			  	var name = val.name
 			  	if (name.length > 30)
 			  		name = name.substr(0, 29)
-			  	var str = "<a href=\""+val.Url+"\"><div class=\"crop\"><p>"+name+"</p><img title=\""+val.Name+"\" src=\"images/"+val.Checksum.replace(/\//g, "_")+".jpg\" onError=\"this.onerror=null;this.src='images/404.jpg';\"/></div></a>";
+			  	var check = val.checksum.replace(/\//g, "_");
+
+			  	var str = "<div onclick=\"showoverlay(this)\" class=\"crop\"><p>"+name+"</p>";
+			  	//if rating > 0 display the ribbon
+			  	if(val.rating > 0)
+			  		str += "<img class=\"ribbon\" src=\"public/img/ribbon.png\">";
+			  	//if hits > 0 display ribbon1
+			  	if(val.hits > 0)
+			  		str += "<img class=\"ribbon1\" src=\"public/img/ribbon1.png\">";
+			  	//add image 
+			  	str += "<img title=\""+val.name+"\" src=\"images/"+check+".jpg\" onError=\"this.onerror=null;this.src='images/404.jpg';\"/>";
+			  	//overlay
+			  	str += "<div style=\"display: none;\" class=\"overlay\">";
+			  	str += "<img onclick=\"upvote('"+val.checksum+"')\" src=\"public/img/up_active.png\">";
+			  	str += "<img onclick=\"downvote('"+val.checksum+"')\" src=\"public/img/down_active.png\">";
+			  	str += "<p>Rating: "+val.rating+"</p>";
+			  	str += "<p>Hits: "+val.hits+"</p>";
+			  	str += "<a onclick=\"hit('"+val.checksum+"')\" href=\""+val.url+"\">link</a>"; 
+			  	str += "</div>";
+
+			  	str +="</div>";
+
 			  	$(str).appendTo("#tcont");
+
+
 			  	if(data.length-1 == key) {
 			  		offset+=200
 			  		loading = false;
@@ -238,6 +283,31 @@
 		font-family: 'Rationale', sans-serif;
    		font-weight: 300;
    		overflow: hidden;
+	}
+
+	.overlay {
+		width: 128px;
+		height: 128px;
+		background-color: rgba(0,0,0,0.8);
+		position: absolute;
+		z-index: 1;
+		top: 0;
+		left: 0;
+	}
+
+	.overlay img {
+		margin-top: 0px !important; 
+		width: 15px !important;
+		cursor: pointer;
+	}
+
+	.overlay p {
+		position: relative !important;
+    	color: #C9C9C9;
+    	padding: 0px !important;
+    	margin: 0px !important;
+    	width: 100% !important;
+    	background-color: rgba(0,0,0,0) !important;
 	}
 
 	.big {
@@ -328,6 +398,22 @@
 		height: 50px;
 		width: 1px;
 		background-color: #8C9FD9;
+	}
+
+	.ribbon {
+		position: absolute;
+		z-index: 0;
+		top: 0;
+		right: 0;
+		width: 40px !important;
+	}
+
+	.ribbon1 {
+		position: absolute;
+		z-index: 0;
+		top: -9px;
+		right: 0;
+		width: 40px !important;
 	}
 
 	#tcont_outer {
