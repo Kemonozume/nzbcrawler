@@ -200,12 +200,30 @@
     		return cmd;
     	}
 
-    	function upvote(str) {
-    		$.get("/db/event/"+str+"/1", function(data) {});
+    	function upvote(str, obj) {
+    		$.get("/db/event/"+str+"/1", function(data) {
+    			var obj2 = $(obj.parentNode).find("p")[0];
+    			var rating = parseInt(obj2.innerHTML.split(":")[1]);
+    			if (rating == -1) {
+    				rating == 1;
+    			}else {
+    				rating++;
+    			}
+    			obj2.innerHTML = "Rating: "+rating;
+    		});
     	}
     	
-    	function downvote(str) {
-    		$.get("/db/event/"+str+"/-1", function(data) {});
+    	function downvote(str, obj) {
+    		$.get("/db/event/"+str+"/-1", function(data) {
+				var obj2 = $(obj.parentNode).find("p")[0];
+    			var rating = parseInt(obj2.innerHTML.split(":")[1]);
+    			if (rating == 1) {
+    				rating == -1;
+    			}else {
+    				rating--;
+    			}
+    			obj2.innerHTML = "Rating: "+rating;
+    		});
     	}
 
     	function hit(str, url) {
@@ -250,8 +268,8 @@
 			  	str += "<img title=\""+val.name+"\" src=\"images/"+check+".jpg\" onError=\"this.onerror=null;this.src='images/404.jpg';\"/>";
 			  	//overlay
 			  	str += "<div style=\"display: none;\" class=\"overlay\">";
-			  	str += "<img onclick=\"upvote('"+val.checksum+"')\" src=\"public/img/up_active.png\">";
-			  	str += "<img onclick=\"downvote('"+val.checksum+"')\" src=\"public/img/down_active.png\">";
+			  	str += "<img onclick=\"upvote('"+val.checksum+"', this)\" src=\"public/img/up_active.png\">";
+			  	str += "<img onclick=\"downvote('"+val.checksum+"', this)\" src=\"public/img/down_active.png\">";
 			  	str += "<p>Rating: "+val.rating+"</p>";
 			  	str += "<p>Hits: "+val.hits+"</p>";
 			  	str += "<a onclick=\"hit('"+val.checksum+"')\" href=\""+val.url+"\">link</a>"; 
