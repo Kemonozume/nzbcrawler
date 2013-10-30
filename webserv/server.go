@@ -3,7 +3,6 @@ package webserv
 import (
 	"./../mydb"
 	"./../town"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	log "github.com/dvirsky/go-pylog/logging"
@@ -13,7 +12,6 @@ import (
 	"github.com/robfig/config"
 	"html/template"
 	"net/http"
-	purl "net/url"
 	"strconv"
 	"strings"
 )
@@ -104,7 +102,6 @@ func (s *Server) Init() {
 	r.HandleFunc("/db/events/{offset:[0-9]+}/{tags}/{name}", GetReleaseWithTagAndName)
 	r.HandleFunc("/db/event/hits/{checksum}", SetHit)
 	r.HandleFunc("/db/event/link/{checksum}", LinkFollow)
-	r.HandleFunc("/db/event/imdb/{name}", ImdbLink)
 	r.HandleFunc("/db/event/{checksum}/{score}", SetRating)
 
 	//logs
@@ -198,63 +195,6 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, string(by))
 	}
 
-}
-
-type Search struct {
-	Title []TitleType
-}
-
-type TitleType struct {
-	Title  string
-	Year   string
-	imdbID string
-	Type   string
-}
-
-func ImdbLink(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
-	vars := mux.Vars(r)
-	name := vars["name"]
-	name = purl.QueryEscape(name)
-	url := "http://www.omdbapi.com/?s=" + name + "&r=JSON"
-
-	var err error
-	client := &http.Client{}
-	log.Info("[GET] url: %v", url)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Error("[GET] couldn't create Request to: %v", url)
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Error("[GET] couldn't connect to: %v", url)
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
-	defer resp.Body.Close()
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(resp.Body)
-
-	var result Search
-	err = json.Unmarshal(buf.Bytes(), &result)
-	if err != nil {
-		log.Error(err.Error())
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
-
-	log.Info("%+v", result)
-
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
 func LinkFollow(w http.ResponseWriter, r *http.Request) {
