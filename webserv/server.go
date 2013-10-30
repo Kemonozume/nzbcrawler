@@ -101,6 +101,7 @@ func (s *Server) Init() {
 	r.HandleFunc("/", HomeHandler)
 	r.HandleFunc("/db/events/{offset:[0-9]+}/{tags}/{name}", GetReleaseWithTagAndName)
 	r.HandleFunc("/db/event/{checksum}/hits", SetHit)
+	r.HandleFunc("/db/event/{checksum}/link", LinkFollow)
 	r.HandleFunc("/db/event/{checksum}/{score}", SetRating)
 
 	//logs
@@ -194,6 +195,27 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, string(by))
 	}
 
+}
+
+func LinkFollow(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "top-kek")
+	if session.Values["login"] != true {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	vars := mux.Vars(r)
+	checksum := vars["checksum"]
+
+	var b = town.Release{Checksum: checksum}
+	has, _ := server.RelDB.Eng.Get(&b)
+	if has {
+		log.Info("increasing hits for rel: %v", checksum)
+		b.Hits += 1
+		server.RelDB.Eng.Update(&b, &town.Release{Checksum: checksum})
+	}
+
+	http.Redirect(w, r, b.Url, http.StatusTemporaryRedirect)
 }
 
 func SetHit(w http.ResponseWriter, r *http.Request) {

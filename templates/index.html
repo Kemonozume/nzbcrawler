@@ -15,6 +15,7 @@
     	var name = "";
     	var loading = false;
     	var counter = 0;
+    	var patt = new RegExp("^(.*?)(German|german|1080|720|[0-9])");
 
     	$(window).load(function() {
 
@@ -60,6 +61,16 @@
 					offset = 0;
 					addUI();
 				}
+			});
+
+			$("#tags").hide();
+			$("#showtag").click(function() {
+				if($("#tags")[0].style.display == "none") {
+					$("#tags").show();
+				}else {
+					$("#tags").hide();
+				}
+				
 			});
 			
 
@@ -119,7 +130,6 @@
 		    var amount2 = currPos *-1;
 
 		    if(amount2 > $("#tcont").outerHeight()-1800 ) {
-		    	console.log("addUI()");
 		    	addUI();
 		    }
 
@@ -140,7 +150,6 @@
 			astr = str.split("")
 			klammer = 0
 			valid = false
-			console.log(str)
 			for(i = 0; i < astr.length; i++) {
 				if(astr[i] === "(") {
 					klammer++
@@ -200,6 +209,18 @@
     		return cmd;
     	}
 
+    	function setTag(str) {
+    		$("#text-tags").val(str);
+			tags = $("#text-tags").val();
+			$("#tags").hide();
+			if(checkValid(tags)) {
+				$("#tcont").html("");
+				document.getElementById('tcont').style.top = 0;
+				offset = 0;
+				addUI();
+			}
+    	}
+
     	function upvote(str, obj) {
     		$.get("/db/event/"+str+"/1", function(data) {
     			var obj2 = $(obj.parentNode).find("p")[0];
@@ -226,11 +247,6 @@
     		});
     	}
 
-    	function hit(str, url) {
-    		$.get("/db/event/"+str+"/hits", function(data) {
-    		});
-    	}
-
     	function showoverlay(bla) {
     		var obj = $(bla).find(".overlay")[0]
     		if(obj.style.display == "none") {
@@ -238,14 +254,28 @@
     		}else {
     			obj.style.display = "none";
     		}
-    		console.log();
+    	}
+
+    	function getMovieName(str) {
+    		var bla = patt.exec(str);
+    		if(bla != undefined || bla != null) {
+    			var name = bla[1];
+    			if(name != "" || name != null) {
+    				name = name.trim();
+    				name = name.replace(/\./g, " ");
+    				return name;
+    			}else {
+    				return null;
+    			}
+    		}else {
+    			return null;
+    		}
     	}
 
 		function addUI() {
 			if(loading == true)
 				return;
 			loading = true;
-			console.log("/db/events/"+offset+"/"+getCmd());
 			$.getJSON('/db/events/'+offset+"/"+getCmd(), function(data) {
 			  if($.isEmptyObject(data)) {
 			  	loading = false;
@@ -272,7 +302,10 @@
 			  	str += "<img onclick=\"downvote('"+val.checksum+"', this)\" src=\"public/img/down_active.png\">";
 			  	str += "<p>Rating: "+val.rating+"</p>";
 			  	str += "<p>Hits: "+val.hits+"</p>";
-			  	str += "<a onclick=\"hit('"+val.checksum+"')\" href=\""+val.url+"\">link</a>"; 
+			  	str += "<a target=\"_blank\" href=\"/db/event/"+val.checksum+"/link\">link</a>"; 
+			  	var ls = getMovieName(val.name);
+			  	if(ls != null) 
+			  		str += "</br><a target=\"_blank\" href=\"http://www.imdb.com/find?s=tt&q="+ls+"\">imdb</a>";
 			  	str += "</div>";
 
 			  	str +="</div>";
@@ -287,9 +320,6 @@
 			  });
 			});
 		}
-
-
-		//
 
 	</script>
 	<style type="text/css">
@@ -445,6 +475,28 @@
 		border: none;
 		margin-top: -15px;
 	}
+
+	#tags {
+		position: absolute;
+		z-index: 15;
+		top: 0;
+		right: 0;
+		width: 100%;
+		height: 92%;
+		padding-left: 10px;
+		padding-right: 10px;
+		margin-top: 5px;
+		margin-left: 2px;
+		margin-right: 2px;
+		background-color: #000;
+		display: none;
+	}
+
+	#tags a{
+		display: inline-block;
+		margin: 20px;
+		
+	}
 	</style>
 </head>
 <body style="">
@@ -465,13 +517,17 @@
 		    	<div class="spacer"></div>
 		    </div>
 		    <div class="col-md-2">
-		    	<div class="linkgroup">[<a id="movpicker">mov hd</a>] [<a id="cinpicker">cine hd</a>] [<a id="pcpicker">pc</a>] [<a id="serienpicker">serie hd</a>]</div>
+		    	<div class="linkgroup">[<a id="movpicker">mov hd</a>] [<a id="cinpicker">cine hd</a>] [<a id="pcpicker">pc</a>] [<a id="serienpicker">serie hd</a>] [<a id="showtag">tags</a>]</div>
 		    	<div class="linkgroup2">[<a>main</a>] [<a href="/log">logs</a>]</div>
 		    </div>
 	    </div>
     </div>
 
     <br>
+
+    <div id="tags"> 
+   		<a onclick="setTag('3D')">3D</a><a onclick="setTag('movies')">movies</a><a onclick="setTag('hd')">hd</a><a onclick="setTag('1080')">1080</a><a onclick="setTag('XVID')">XVID</a><a onclick="setTag('sd')">sd</a><a onclick="setTag('DVD')">DVD</a><a onclick="setTag('untouched')">untouched</a><a onclick="setTag('abenteuer')">abenteuer</a><a onclick="setTag('action')">action</a><a onclick="setTag('TV')">TV</a><a onclick="setTag('720')">720</a><a onclick="setTag('XVID')">XVID</a><a onclick="setTag('cinema')">cinema</a><a onclick="setTag('Deutsch')">Deutsch</a><a onclick="setTag('thriller')">thriller</a><a onclick="setTag('doku')">doku</a><a onclick="setTag('Cinema')">Cinema</a><a onclick="setTag('drama')">drama</a><a onclick="setTag('eng')">eng</a><a onclick="setTag('comedy')">comedy</a><a onclick="setTag('komödie')">komödie</a><a onclick="setTag('science')">science</a><a onclick="setTag('rips')">rips</a><a onclick="setTag('fantasy')">fantasy</a><a onclick="setTag('horror')">horror</a><a onclick="setTag('series')">series</a><a onclick="setTag('serien')">serien</a><a onclick="setTag('anime')">anime</a><a onclick="setTag('animation')">animation</a><a onclick="setTag('metal')">metal</a><a onclick="setTag('music')">music</a><a onclick="setTag('rock')">rock</a><a onclick="setTag('lossless')">lossless</a><a onclick="setTag('alternative')">alternative</a><a onclick="setTag('reggae')">reggae</a><a onclick="setTag('chill')">chill</a><a onclick="setTag('house')">house</a><a onclick="setTag('blues')">blues</a><a onclick="setTag('techno')">techno</a><a onclick="setTag('schranz')">schranz</a><a onclick="setTag('charts')">charts</a><a onclick="setTag('country')">country</a><a onclick="setTag('r&b')">r&b</a><a onclick="setTag('elektrik')">elektrik</a><a onclick="setTag('folk')">folk</a><a onclick="setTag('Rock')">Rock</a><a onclick="setTag('Discography')">Discography</a><a onclick="setTag('Metal')">Metal</a><a onclick="setTag('Sampler')">Sampler</a><a onclick="setTag('Electronic')">Electronic</a><a onclick="setTag('dance')">dance</a><a onclick="setTag('indie')">indie</a><a onclick="setTag('Nintendo')">Nintendo</a><a onclick="setTag('games')">games</a><a onclick="setTag('wii')">wii</a><a onclick="setTag('pc')">pc</a><a onclick="setTag('playstation')">playstation</a><a onclick="setTag('ps')">ps</a><a onclick="setTag('Games')">Games</a><a onclick="setTag('hardcore')">hardcore</a><a onclick="setTag('xxx')">xxx</a><a onclick="setTag('lesbian')">lesbian</a><a onclick="setTag('solo')">solo</a><a onclick="setTag('bj')">bj</a><a onclick="setTag('hj')">hj</a><a onclick="setTag('interracial')">interracial</a><a onclick="setTag('dp')">dp</a><a onclick="setTag('milf')">milf</a><a onclick="setTag('bdsm')">bdsm</a><a onclick="setTag('anal')">anal</a><a onclick="setTag('amateur')">amateur</a><a onclick="setTag('teenover')">teenover</a><a onclick="setTag('fetisch')">fetisch</a><a onclick="setTag('mature')">mature</a><a onclick="setTag('inzest')">inzest</a><a onclick="setTag('boobs')">boobs</a><a onclick="setTag('fisting')">fisting</a><a onclick="setTag('gonzo')">gonzo</a><a onclick="setTag('titts')">titts</a><a onclick="setTag('asian')">asian</a><a onclick="setTag('creampies')">creampies</a><a onclick="setTag('squirt')">squirt</a><a onclick="setTag('transexuelles')">transexuelles</a><a onclick="setTag('bizzare')">bizzare</a><a onclick="setTag('butts')">butts</a><a onclick="setTag('sonstige')">sonstige</a><a onclick="setTag('english')">english</a><a onclick="setTag('rap')">rap</a><a onclick="setTag('ps3')">ps3</a><a onclick="setTag('Englisch')">Englisch</a><a onclick="setTag('XVID')">XVID</a><a onclick="setTag('Jazz')">Jazz</a><a onclick="setTag('souls')">souls</a><a onclick="setTag('Pop')">Pop</a><a onclick="setTag('oldies')">oldies</a><a onclick="setTag('Fremdsprachig')">Fremdsprachig</a><a onclick="setTag('biographie')">biographie</a><a onclick="setTag('XVID')">XVID</a><a onclick="setTag('Englisch')">Englisch</a><a onclick="setTag('xbox')">xbox</a><a onclick="setTag('classic')">classic</a><a onclick="setTag('crime')">crime</a><a onclick="setTag('schlager')">schlager</a><a onclick="setTag('volksmusik')">volksmusik</a><a onclick="setTag('Playstation')">Playstation</a><a onclick="setTag('romanze')">romanze</a><a onclick="setTag('top')">top</a><a onclick="setTag('other')">other</a><a onclick="setTag('family')">family</a><a onclick="setTag('mac')">mac</a><a onclick="setTag('latin')">latin</a><a onclick="setTag('hentai')">hentai</a><a onclick="setTag('sport')">sport</a><a onclick="setTag('western')">western</a><a onclick="setTag('zeichentrick')">zeichentrick</a><a onclick="setTag('kriegsfilm')">kriegsfilm</a><a onclick="setTag('mixed')">mixed</a><a onclick="setTag('orgy')">orgy</a><a onclick="setTag('history')">history</a><a onclick="setTag('latino')">latino</a><a onclick="setTag('Charts')">Charts</a><a onclick="setTag('soul')">soul</a><a onclick="setTag('instrumental')">instrumental</a><a onclick="setTag('dramedy')">dramedy</a><a onclick="setTag('facials')">facials</a><a onclick="setTag('oral')">oral</a><a onclick="setTag('punk')">punk</a><a onclick="setTag('foreign')">foreign</a><a onclick="setTag('mix')">mix</a><a onclick="setTag('gothic')">gothic</a><a onclick="setTag('funk')">funk</a><a onclick="setTag('alben')">alben</a><a onclick="setTag('musikdvd')">musikdvd</a><a onclick="setTag('3ds')">3ds</a><a onclick="setTag('soundtracks')">soundtracks</a><a onclick="setTag('club')">club</a><a onclick="setTag('psp')">psp</a><a onclick="setTag('nintendo')">nintendo</a><a onclick="setTag('trickfilm')">trickfilm</a><a onclick="setTag('ps2')">ps2</a><a onclick="setTag('rock')">rock</a><a onclick="setTag('jav')">jav</a><a onclick="setTag('pics')">pics</a><a onclick="setTag('märchen')">märchen</a><a onclick="setTag('crossover')">crossover</a><a onclick="setTag('voyeur')">voyeur</a><a onclick="setTag('Sonstiges')">Sonstiges</a><a onclick="setTag('black')">black</a><a onclick="setTag('erotik')">erotik</a><a onclick="setTag('kaviar')">kaviar</a><a onclick="setTag('soundtrack')">soundtrack</a><a onclick="setTag('TV')">TV</a><a onclick="setTag('hörspiel')">hörspiel</a><a onclick="setTag('linux')">linux</a><a onclick="setTag('sampler')">sampler</a><a onclick="setTag('oper')">oper</a><a onclick="setTag('kids')">kids</a>
+    </div>
 
 	<div id="tcont_outer">
 		<div id="tcont"></div>
