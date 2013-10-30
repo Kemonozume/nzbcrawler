@@ -302,7 +302,7 @@
 			  	str += "<img onclick=\"downvote('"+val.checksum+"', this)\" src=\"public/img/down_active.png\">";
 			  	str += "<p>Rating: "+val.rating+"</p>";
 			  	str += "<p>Hits: "+val.hits+"</p>";
-			  	str += "<a target=\"_blank\" href=\"/db/event/"+val.checksum+"/link\">link</a>"; 
+			  	str += "<a target=\"_blank\" href=\"/db/event/link/"+val.checksum+"\">link</a>"; 
 			  	var ls = getMovieName(val.name);
 			  	if(ls != null) 
 			  		str += "</br><a target=\"_blank\" href=\"http://www.imdb.com/find?s=tt&q="+ls+"\">imdb</a>";
