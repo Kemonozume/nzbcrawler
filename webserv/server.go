@@ -175,7 +175,10 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if command != "" {
-		res, _ := server.RelDB.Eng.Query(command)
+		res, err := server.RelDB.Eng.Query(command)
+		if err != nil {
+			log.Error(err.Error())
+		}
 		b := Response2Struct(res)
 		by, err := json.Marshal(b)
 		if err != nil {
@@ -186,7 +189,10 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 	} else {
 		var b []town.Release
 		offset2, _ := strconv.Atoi(vars["offset"])
-		server.RelDB.Eng.Limit(50, offset2).OrderBy("time DESC").Find(&b)
+		err := server.RelDB.Eng.Limit(50, offset2).OrderBy("time DESC").Find(&b)
+		if err != nil {
+			log.Error(err.Error())
+		}
 		by, err := json.Marshal(b)
 		if err != nil {
 			log.Error("json marshal failed %v", err.Error())
