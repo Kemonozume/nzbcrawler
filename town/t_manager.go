@@ -81,6 +81,7 @@ func (t *Townmanager) saveReleases(releases []Release) {
 	for _, rel := range releases {
 		_, err := t.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time, rel.Hits, rel.Rating)
 		if err != nil {
+			log.Error(err.Error())
 			t.end = true
 			break
 		}
