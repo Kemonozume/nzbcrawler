@@ -16,13 +16,13 @@ import (
 )
 
 type Release struct {
-	Checksum string `json:"checksum" xorm:"pk not null"`
-	Url      string `json:"url"`
-	Name     string `json:"name"`
-	Tag      string `json:"tag"`
-	Time     int64  `json:"time"`
-	Rating   int32  `json:"rating"`
-	Hits     int    `json:"hits"`
+	Checksum string `json:"checksum" xorm:"pk not null text"`
+	Url      string `json:"url" xorm:"text"`
+	Name     string `json:"name" xorm:"text"`
+	Tag      string `json:"tag" xorm:"text"`
+	Time     int64  `json:"time" xorm:"integer"`
+	Rating   int32  `json:"rating" xorm:"int"`
+	Hits     int    `json:"hits" xorm:"int"`
 	Image    string `xorm:"-"`
 }
 

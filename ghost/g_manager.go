@@ -69,7 +69,7 @@ func (g *Ghostmanager) Start() {
 func (g *Ghostmanager) saveReleases(releases []Release) {
 	log.Info("saving %d releases", len(releases))
 	for _, rel := range releases {
-		_, err := g.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time, rel.Hits, rel.Rating)
+		_, err := g.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time, rel.Hits, rel.Rating)
 		if err != nil {
 			log.Error(err.Error())
 			g.end = true
