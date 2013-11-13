@@ -5,13 +5,14 @@ import (
 	"./../town"
 	"encoding/json"
 	"fmt"
+	"github.com/coopernurse/gorp"
 	log "github.com/dvirsky/go-pylog/logging"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/howeyc/fsnotify"
 	"github.com/robfig/config"
-	"html/template"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -19,8 +20,8 @@ import (
 type Server struct {
 	Config  *config.Config
 	Config2 *Conf
-	RelDB   *mydb.MyDB
-	LogDB   *mydb.MyDB
+	RelDB   *gorp.DbMap
+	LogDB   *gorp.DbMap
 	Watcher *fsnotify.Watcher
 }
 
@@ -39,27 +40,7 @@ type Conf struct {
 
 var server *Server
 var runner *Runner
-var templates *template.Template
 var store *sessions.CookieStore
-
-//enables live editing of the templates
-func (s *Server) WatchFiles() {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Info("recovered from panic")
-			s.WatchFiles()
-		}
-	}()
-	for {
-		select {
-		case <-s.Watcher.Event:
-			templates = template.Must(template.ParseFiles("templates/index.html", "templates/log.html"))
-		case err := <-s.Watcher.Error:
-			log.Info(err.Error())
-		}
-	}
-
-}
 
 func (s *Server) Init() {
 
@@ -72,16 +53,12 @@ func (s *Server) Init() {
 		MaxAge: 86400 * 7,
 	}
 
-	templates = template.Must(template.ParseFiles("templates/index.html", "templates/log.html"))
-
 	//watch file changes
 	var err_tmp error
 	s.Watcher, err_tmp = fsnotify.NewWatcher()
 	if err_tmp != nil {
 		log.Info(err_tmp.Error())
 	}
-
-	go s.WatchFiles()
 
 	err := s.Watcher.Watch("templates")
 	if err != nil {
@@ -100,9 +77,8 @@ func (s *Server) Init() {
 	//browse
 	r.HandleFunc("/", HomeHandler)
 	r.HandleFunc("/db/events/{offset:[0-9]+}/{tags}/{name}", GetReleaseWithTagAndName)
-	r.HandleFunc("/db/event/hits/{checksum}", SetHit)
-	r.HandleFunc("/db/event/link/{checksum}", LinkFollow)
-	r.HandleFunc("/db/event/{checksum}/{score}", SetRating)
+	r.HandleFunc("/db/event/{checksum}/link", LinkFollow)
+	r.HandleFunc("/db/event/{checksum}/score/{score}", SetRating)
 
 	//logs
 	r.HandleFunc("/log", LogHandler)
@@ -128,10 +104,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	err := templates.ExecuteTemplate(w, "index.html", nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	http.ServeFile(w, r, "templates/index.html")
 }
 
 func PseudoLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +130,7 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
+
 	vars := mux.Vars(r)
 	offset := vars["offset"]
 	tags := vars["tags"]
@@ -174,32 +148,25 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 		command += "AND name LIKE '%" + name + "%' ORDER BY time DESC LIMIT 200 OFFSET " + offset
 	}
 
+	var b []town.Release
+
 	if command != "" {
-		res, err := server.RelDB.Eng.Query(command)
+		_, err := server.RelDB.Select(&b, command)
 		if err != nil {
 			log.Error(err.Error())
 		}
-		b := Response2Struct(res)
-		by, err := json.Marshal(b)
-		if err != nil {
-			log.Error("json marshal failed %v", err.Error())
-		}
-
-		fmt.Fprintf(w, string(by))
 	} else {
-		var b []town.Release
-		offset2, _ := strconv.Atoi(vars["offset"])
-		err := server.RelDB.Eng.Limit(50, offset2).OrderBy("time DESC").Find(&b)
+		_, err := server.RelDB.Select(&b, "select * from release ORDER BY time DESC LIMIT 200 OFFSET ?", offset)
 		if err != nil {
 			log.Error(err.Error())
 		}
-		by, err := json.Marshal(b)
-		if err != nil {
-			log.Error("json marshal failed %v", err.Error())
-		}
-
-		fmt.Fprintf(w, string(by))
 	}
+	by, err := json.Marshal(b)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	fmt.Fprintf(w, string(by))
 
 }
 
@@ -213,35 +180,21 @@ func LinkFollow(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	checksum := vars["checksum"]
 
-	var b = town.Release{Checksum: checksum}
-	has, _ := server.RelDB.Eng.Get(&b)
-	if has {
-		log.Info("increasing hits for rel: %v", checksum)
-		b.Hits += 1
-		server.RelDB.Eng.Update(&b, &town.Release{Checksum: checksum})
+	hits, err := server.RelDB.SelectInt("select hits from release where checksum=?", checksum)
+	if err != nil {
+		log.Error(err.Error())
 	}
 
-	http.Redirect(w, r, b.Url, http.StatusTemporaryRedirect)
-}
-
-func SetHit(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-	vars := mux.Vars(r)
-	checksum := vars["checksum"]
-
-	var b = town.Release{Checksum: checksum}
-	has, _ := server.RelDB.Eng.Get(&b)
-	if has {
-		log.Info("increasing hits for rel: %v", checksum)
-		b.Hits += 1
-		server.RelDB.Eng.Update(&b, &town.Release{Checksum: checksum})
+	oldhits := hits
+	hits += 1
+	log.Info("increasing hits for %s from %v to %v", checksum, oldhits, hits)
+	_, err = server.RelDB.Exec("update release set hits=? where checksum=?", hits, checksum)
+	if err != nil {
+		log.Error(err.Error())
 	}
 
-	fmt.Fprintf(w, "ok")
+	url, err := server.RelDB.SelectStr("select url from release where checksum=?", checksum)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func SetRating(w http.ResponseWriter, r *http.Request) {
@@ -255,22 +208,16 @@ func SetRating(w http.ResponseWriter, r *http.Request) {
 	checksum := vars["checksum"]
 	score, _ := strconv.Atoi(vars["score"])
 
-	var b = town.Release{Checksum: checksum}
-	has, _ := server.RelDB.Eng.Get(&b)
-	if has {
-		log.Info("changing rating for rel: %v with score: %v", checksum, score)
-		if score == -1 {
-			b.Rating -= 1
-			if b.Rating == 0 {
-				b.Rating = -1
-			}
-		} else {
-			b.Rating += 1
-			if b.Rating == 0 {
-				b.Rating = 1
-			}
-		}
-		server.RelDB.Eng.Update(&b, &town.Release{Checksum: checksum})
+	rating, err := server.RelDB.SelectInt("select rating from release where checksum=?", checksum)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	oldrating := rating
+	rating += int64(score)
+	log.Info("changing score for %s from %v to %v", checksum, oldrating, rating)
+	_, err = server.RelDB.Exec("update release set rating=? where checksum=?", rating, checksum)
+	if err != nil {
+		log.Error(err.Error())
 	}
 
 	fmt.Fprintf(w, "%v %v", checksum, score)
@@ -283,10 +230,7 @@ func LogHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	err := templates.ExecuteTemplate(w, "log.html", nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	http.ServeFile(w, r, "templates/log.html")
 
 }
 
@@ -297,14 +241,13 @@ func GetLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	offset, err := strconv.Atoi(vars["offset"])
+	offset, _ := strconv.Atoi(vars["offset"])
 
 	var all []mydb.Log
-
-	//server.LogDB.Mutex.Lock()
-	server.LogDB.Eng.Limit(50, offset).OrderBy("id DESC").Find(&all)
-	//server.LogDB.Mutex.Unlock()
-
+	_, err := server.LogDB.Select(&all, "select * from log ORDER BY id DESC LIMIT 50 OFFSET ?", offset)
+	if err != nil {
+		log.Error(err.Error())
+	}
 	by, err := json.Marshal(all)
 	if err != nil {
 		log.Error(err.Error())
@@ -321,14 +264,14 @@ func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	offset, err := strconv.Atoi(vars["offset"])
+	offset, _ := strconv.Atoi(vars["offset"])
 	level := vars["level"]
 
 	var all []mydb.Log
-
-	//server.LogDB.Mutex.Lock()
-	server.LogDB.Eng.Limit(50, offset).OrderBy("id DESC").Where("Lvl = ?", level).Find(&all)
-	//server.LogDB.Mutex.Unlock()
+	_, err := server.LogDB.Select(&all, "select * from log WHERE Lvl = ? ORDER BY id DESC LIMIT 50 OFFSET ?", level, offset)
+	if err != nil {
+		log.Error(err.Error())
+	}
 
 	by, err := json.Marshal(all)
 	if err != nil {
@@ -345,18 +288,15 @@ func ClearLogs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	worked := "worked"
-	server.LogDB.Mutex.Lock()
-	server.LogDB.Eng.Exec("drop table log")
-	if err := server.LogDB.Eng.CreateTables(&mydb.Log{}); err != nil {
-		log.Error(err.Error())
-		worked = "failed"
-	}
 
-	server.LogDB.Eng.Exec("vacuum")
-	server.LogDB.Mutex.Unlock()
+	worked := "worked"
+	server.LogDB.Exec("drop table log")
+	server.LogDB.AddTableWithName(mydb.Log{}, "log").SetKeys(true, "Uid")
+	server.LogDB.CreateTablesIfNotExists()
+	server.LogDB.Exec("vacuum")
 
 	fmt.Fprintf(w, worked)
+
 }
 
 //ASSETS
@@ -371,6 +311,17 @@ func AssetHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/assets/"+file)
 }
 
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
 func ImgHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
@@ -381,7 +332,16 @@ func ImgHandler(w http.ResponseWriter, r *http.Request) {
 	file := vars["file"]
 	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 432000))
 	w.Header().Add("Content-Type", "image")
-	http.ServeFile(w, r, "templates/images/"+file)
+	exist, err := exists("templates/images/" + file + ".jpg")
+	if err != nil {
+		log.Error(err.Error())
+	}
+	if exist {
+		http.ServeFile(w, r, "templates/images/"+file+".jpg")
+	} else {
+		http.ServeFile(w, r, "templates/images/404.jpg")
+	}
+
 }
 
 func (s *Server) readConfig() {

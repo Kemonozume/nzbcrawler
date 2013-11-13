@@ -1,7 +1,8 @@
 package ghost
 
 import (
-	"./../mydb"
+	"../town"
+	"github.com/coopernurse/gorp"
 	log "github.com/dvirsky/go-pylog/logging"
 	"strconv"
 	"time"
@@ -9,7 +10,7 @@ import (
 
 type Ghostmanager struct {
 	User, Password, url string
-	DB                  *mydb.MyDB
+	DB                  *gorp.DbMap
 	maxpage             int
 	end                 bool
 }
@@ -67,23 +68,20 @@ func (g *Ghostmanager) Start() {
 }
 
 func (g *Ghostmanager) saveReleases(releases []Release) {
-	log.Info("saving %d releases", len(releases))
 	for _, rel := range releases {
-		_, err := g.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time, rel.Hits, rel.Rating)
+		err := g.DB.Insert(&town.Release{Name: rel.Name, Checksum: rel.Checksum, Rating: rel.Rating, Hits: rel.Hits, Time: rel.Time, Url: rel.Url, Tag: rel.Tag})
 		if err != nil {
 			log.Error(err.Error())
 			g.end = true
 			break
+		} else {
+			log.Info("saved %v", rel.Name)
 		}
 	}
 
 }
 
 func (g *Ghostmanager) init(gc *Ghostclient) error {
-
-	if err := g.DB.Eng.CreateTables(&Release{}); err != nil {
-		log.Error(err.Error())
-	}
 
 	//login to get cookies
 	err := gc.Login()

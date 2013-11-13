@@ -1,7 +1,7 @@
 package town
 
 import (
-	"./../mydb"
+	"github.com/coopernurse/gorp"
 	log "github.com/dvirsky/go-pylog/logging"
 	"strconv"
 	"time"
@@ -9,7 +9,7 @@ import (
 
 type Townmanager struct {
 	User, Password, url string
-	DB                  *mydb.MyDB
+	DB                  *gorp.DbMap
 	page, maxpage       int
 	end                 bool
 }
@@ -77,24 +77,20 @@ func (t *Townmanager) Start() {
 }
 
 func (t *Townmanager) saveReleases(releases []Release) {
-	log.Info("saving %d releases", len(releases))
 	for _, rel := range releases {
-		_, err := t.DB.Eng.Exec("INSERT INTO release VALUES(?, ?, ?, ?, ?, ?, ?)", rel.Checksum, rel.Url, rel.Name, rel.Tag, rel.Time, rel.Hits, rel.Rating)
+		err := t.DB.Insert(&rel)
 		if err != nil {
 			log.Error(err.Error())
 			t.end = true
 			break
+		} else {
+			log.Info("saved %v", rel.Name)
 		}
 	}
 
 }
 
 func (t *Townmanager) init(tc *Townclient) error {
-
-	if err := t.DB.Eng.CreateTables(&Release{}); err != nil {
-		log.Error(err.Error())
-	}
-
 	//login to get cookies
 	err := tc.Login()
 	if err != nil {

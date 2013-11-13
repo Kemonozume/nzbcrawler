@@ -2,12 +2,13 @@ package main
 
 import (
 	"./mydb"
+	"./town"
 	"./webserv"
 	_ "code.google.com/p/go-sqlite/go1/sqlite3"
-	log "github.com/dvirsky/go-pylog/logging"
-	"github.com/lunny/xorm"
+	"database/sql"
+	"github.com/coopernurse/gorp"
+	logging "github.com/dvirsky/go-pylog/logging"
 	"github.com/robfig/config"
-	"sync"
 )
 
 const (
@@ -17,45 +18,32 @@ const (
 func main() {
 
 	//db access for releases
-	RelDB := &mydb.MyDB{}
-	RelEng, err := xorm.NewEngine("sqlite3", "./release.db")
+	db, err := sql.Open("sqlite3", "./release.db")
 	if err != nil {
 		panic(err.Error())
 	}
-	RelDB.Eng = RelEng
-	RelDB.Mutex = &sync.Mutex{}
-	RelDB.Eng.ShowSQL = false
-
-	RelEng.Query("ALTER TABLE release ADD COLUMN hits int DEFAULT 0;")
-	RelEng.Query("ALTER TABLE release ADD COLUMN rating int DEFAULT 0;")
+	reldb := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+	reldb.AddTableWithName(town.Release{}, "release").SetKeys(false, "Checksum").ColMap("Checksum").SetUnique(true).SetNotNull(true)
+	reldb.CreateTablesIfNotExists()
 
 	//db for logs
 	//different database cause of locks with high log frequency
-	LogDB := &mydb.MyDB{}
-	LogEng, err := xorm.NewEngine("sqlite3", "./logs.db")
+	dblog, err := sql.Open("sqlite3", "./logs.db")
+	dbmap := &gorp.DbMap{Db: dblog, Dialect: gorp.SqliteDialect{}}
+	dbmap.AddTableWithName(mydb.Log{}, "log").SetKeys(true, "Uid")
+	dbmap.CreateTablesIfNotExists()
+	logdb := mydb.DBLog{DB: dbmap}
 	if err != nil {
 		panic(err.Error())
 	}
-	LogDB.Eng = LogEng
-	LogDB.Mutex = &sync.Mutex{}
-	LogDB.Eng.ShowSQL = false
 
-	//setting log
-	bla := mydb.DBLog{LogDB}
-
-	LogDB.Mutex.Lock()
-	if err := LogDB.Eng.CreateTables(&mydb.Log{}); err != nil {
-		log.Error(err.Error())
-	}
-	LogDB.Mutex.Unlock()
-
-	log.SetOutput(bla)
+	logging.SetOutput(logdb)
 
 	//read config file
 	c, _ := config.ReadDefault("default.ini")
 
 	//webserver
-	serv := &webserv.Server{Config: c, RelDB: RelDB, LogDB: LogDB}
+	serv := &webserv.Server{Config: c, RelDB: reldb, LogDB: dbmap}
 	serv.Init()
 
 }
