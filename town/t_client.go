@@ -26,13 +26,13 @@ const (
 )
 
 func (t *Townclient) getSValue() (sValue string) {
-	log.Info("getting sValue for town login")
+	log.Info("%s getting sValue for town login", TAG)
 	sValue = ""
 	var doc *goquery.Document
 	var e error
-	log.Info("[GET] url: %v", ROOT)
+	log.Info("%s[GET] url: %v", TAG, ROOT)
 	if doc, e = goquery.NewDocument(ROOT); e != nil {
-		log.Error("couldn't connect to town")
+		log.Error("%s %s", TAG, e.Error())
 		return
 	}
 
@@ -48,13 +48,13 @@ func (t *Townclient) getSValue() (sValue string) {
 		}
 
 	})
-	log.Info("sValue: %v", sValue)
+	log.Info("%s sValue: %v", TAG, sValue)
 	return sValue
 }
 
 // Logs into town.ag and returns the response cookies
 func (t *Townclient) Login() error {
-	log.Info("login process started")
+	log.Info("%s login process started", TAG)
 
 	sValue := t.getSValue()
 
@@ -79,7 +79,7 @@ func (t *Townclient) Login() error {
 		return err
 	}
 
-	log.Info("[POST] url: %v", LOGIN)
+	log.Info("%s[POST] url: %v", TAG, LOGIN)
 	t.addHeader(req)
 
 	t.dumpRequest(req, "town_login_req")
@@ -102,13 +102,13 @@ func Redirect(req *http.Request, via []*http.Request) error {
 
 //return the Daily url or "" if something went wrong
 func (t *Townclient) GetDailyUrl() (string, error) {
-	log.Info("getting Daily Url for town")
+	log.Info("%s getting Daily Url for town", TAG)
 	client := &http.Client{
 		CheckRedirect: Redirect,
 	}
 	req, err := http.NewRequest("GET", DAILY, nil)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return "", err
 	}
 
@@ -134,7 +134,7 @@ func (t *Townclient) GetDailyUrl() (string, error) {
 		return "", err
 	}
 
-	log.Info("daily url: %v", url.String())
+	log.Info("%s daily url: %v", TAG, url.String())
 	return url.String(), nil
 
 }
@@ -143,13 +143,13 @@ func (t *Townclient) GetDailyUrl() (string, error) {
 func (t *Townclient) Get(sUrl string) (*http.Response, error) {
 	if strings.Contains(sUrl, "jpg") || strings.Contains(sUrl, "png") || strings.Contains(sUrl, "gif") || strings.Contains(sUrl, "jpeg") {
 	} else {
-		log.Info("[GET] url: %v", sUrl)
+		log.Info("%s[GET] url: %v", TAG, sUrl)
 	}
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", sUrl, nil)
 	if err != nil {
-		log.Critical("couldn't create Request to: %v", sUrl)
+		log.Error("%s couldn't create Request to: %v", TAG, sUrl)
 		return nil, err
 	}
 
@@ -167,7 +167,7 @@ func (t *Townclient) Get(sUrl string) (*http.Response, error) {
 	//connect to sUrl
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error("couldn't connect to: %v", sUrl)
+		log.Error("%s couldn't connect to: %v", TAG, sUrl)
 		return nil, err
 	}
 

@@ -2,6 +2,7 @@ package ghost
 
 import (
 	"../town"
+	"code.google.com/p/go-sqlite/go1/sqlite3"
 	"github.com/coopernurse/gorp"
 	log "github.com/dvirsky/go-pylog/logging"
 	"strconv"
@@ -15,6 +16,10 @@ type Ghostmanager struct {
 	end                 bool
 }
 
+const (
+	TAG = "[ghost]"
+)
+
 func (g *Ghostmanager) Start() {
 
 	g.end = false
@@ -24,10 +29,10 @@ func (g *Ghostmanager) Start() {
 	gc.Password = g.Password
 
 	err := g.init(gc)
-	log.Info("Ghostclient init finished, starting to parse...")
+	log.Info("%s init finished, starting to parse...", TAG)
 	if err != nil {
-		log.Error("Ghostclient init failed")
-		log.Error(err.Error())
+		log.Error("%s init failed", TAG)
+		log.Error("%s %s", TAG, err.Error())
 		return
 	}
 
@@ -38,44 +43,52 @@ func (g *Ghostmanager) Start() {
 		if i == 1 {
 			err = tp.ParseReleases()
 			if err != nil {
-				log.Error(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				break
 			}
 			g.maxpage = tp.Count
-			log.Info("Ghostclient crawling approximately %v pages", g.maxpage)
+			log.Info("%s crawling approximately %v pages", TAG, g.maxpage)
 		} else {
 			tp = nil
 			tp = &Ghostparser{Url: g.url + "&page=" + strconv.Itoa(i), Gc: gc}
 			err = tp.ParseReleases()
 			if err != nil {
-				log.Error(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				break
 			}
 		}
 		g.saveReleases(tp.Rel)
-		log.Info("ghost: crawled page %v/%v", i, g.maxpage)
+		log.Info("%s crawled page %v/%v", TAG, i, g.maxpage)
 		time.Sleep(5 * time.Second)
 		i++
 		if i == g.maxpage+1 {
 			break
 		}
 		if g.end {
-			log.Info("found old end point")
+			log.Info("%s found old end point", TAG)
 			break
 		}
 	}
-	log.Info("ghost parser closing")
+	log.Info("%s closing", TAG)
 }
 
 func (g *Ghostmanager) saveReleases(releases []Release) {
 	for _, rel := range releases {
 		err := g.DB.Insert(&town.Release{Name: rel.Name, Checksum: rel.Checksum, Rating: rel.Rating, Hits: rel.Hits, Time: rel.Time, Url: rel.Url, Tag: rel.Tag})
 		if err != nil {
-			log.Error(err.Error())
-			g.end = true
-			break
+			switch err.(type) {
+			case *sqlite3.Error:
+				if err.(*sqlite3.Error).Code() == 2067 {
+					g.end = true
+					break
+				} else {
+					log.Error("%s %s", TAG, err.Error())
+				}
+			default:
+				log.Error("%s %s", TAG, err.Error())
+			}
 		} else {
-			log.Info("saved %v", rel.Name)
+			log.Info("%s saved %v", TAG, rel.Name)
 		}
 	}
 
@@ -86,7 +99,7 @@ func (g *Ghostmanager) init(gc *Ghostclient) error {
 	//login to get cookies
 	err := gc.Login()
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return err
 	}
 
@@ -94,7 +107,7 @@ func (g *Ghostmanager) init(gc *Ghostclient) error {
 
 	url, err := gc.GetDailyUrl()
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return err
 	}
 

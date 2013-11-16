@@ -55,7 +55,7 @@ func exists(path string) (bool, error) {
 func (t *Townparser) ParsePageCount() (int, error) {
 	resp, err := t.Tc.Get(t.Url)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return 0, err
 	}
 	defer resp.Body.Close()
@@ -95,7 +95,7 @@ func (t *Townparser) ParsePageCount() (int, error) {
 func (t *Townparser) downloadImage(url string, name string) error {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Info("recovered from panic")
+			log.Info("%s recovered from panic", TAG)
 			return
 		}
 	}()
@@ -104,14 +104,14 @@ func (t *Townparser) downloadImage(url string, name string) error {
 	}
 	exist, err := exists("templates/images/" + name + ".jpg")
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 	}
 
 	if !exist {
 		resp, err := t.Tc.Get(url)
 		if err != nil {
-			log.Error("image download failed, name: %v, url: %v", name, url)
-			log.Error(err.Error())
+			log.Error("%s image download failed, name: %v, url: %v", TAG, name, url)
+			log.Error("%s %s", TAG, err.Error())
 			return err
 		}
 		defer resp.Body.Close()
@@ -120,7 +120,7 @@ func (t *Townparser) downloadImage(url string, name string) error {
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
 			out, err := os.Create("templates/images/" + name + ".jpg")
 			if err != nil {
-				log.Info(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				return nil
 			}
 
@@ -128,15 +128,14 @@ func (t *Townparser) downloadImage(url string, name string) error {
 			jpeg.Encode(out, m, nil)
 			out.Close()
 		} else if strings.Contains(url, "png") {
-			log.Info(url)
 			img, err := png.Decode(resp.Body)
 			if err != nil {
-				log.Error(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 			}
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
 			out, err := os.Create("templates/images/" + name + ".png")
 			if err != nil {
-				log.Info(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				return nil
 			}
 
@@ -157,7 +156,7 @@ func (t *Townparser) encodeName(name string) string {
 
 //parse the http resp from Townclient
 func (t *Townparser) ParseReleases(flush bool) error {
-	log.Info("parsing %v", t.Url)
+	log.Info("%s parsing %v", TAG, t.Url)
 	if flush {
 		t.Site = nil
 	}
@@ -165,7 +164,7 @@ func (t *Townparser) ParseReleases(flush bool) error {
 	if t.Site == nil {
 		resp, err := t.Tc.Get(t.Url)
 		if err != nil {
-			log.Error(err.Error())
+			log.Error("%s %s", TAG, err.Error())
 			return err
 		}
 		defer resp.Body.Close()

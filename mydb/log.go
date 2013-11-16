@@ -4,10 +4,19 @@ import (
 	"fmt"
 	"github.com/coopernurse/gorp"
 	"strings"
+	"time"
 )
 
 type DBLog struct {
 	DB *gorp.DbMap
+}
+
+type Status struct {
+	Name   string
+	Last   time.Time
+	Next   time.Time
+	Runs   int64
+	Amount int64
 }
 
 //`xorm:"id pk not null autoincr"`

@@ -24,8 +24,8 @@ const (
 )
 
 func (g *Ghostclient) getFirstTimeShit() error {
-	log.Info("[GET] url: %v", LOGIN)
-	log.Info("getting cookies")
+	log.Info("%s[GET] url: %v", TAG, LOGIN)
+	log.Info("%s getting cookies", TAG)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", LOGIN, nil)
 	if err != nil {
@@ -56,7 +56,7 @@ func (g *Ghostclient) getFirstTimeShit() error {
 
 // Logs into town.ag and returns the response cookies
 func (g *Ghostclient) Login() error {
-	log.Info("login process started")
+	log.Info("%s login process started", TAG)
 
 	g.getFirstTimeShit()
 
@@ -75,7 +75,7 @@ func (g *Ghostclient) Login() error {
 		return err
 	}
 
-	log.Info("[POST] url: %v", LOGIN)
+	log.Info("%s[POST] url: %v", TAG, LOGIN)
 
 	if g.cookies != nil {
 		for _, cookie := range g.cookies {
@@ -113,12 +113,12 @@ func (g *Ghostclient) Login() error {
 func (g *Ghostclient) Get(sUrl string) (*http.Response, error) {
 	if strings.Contains(sUrl, "jpg") || strings.Contains(sUrl, "png") || strings.Contains(sUrl, "gif") {
 	} else {
-		log.Info("[GET] url: %v", sUrl)
+		log.Info("%s[GET] url: %v", TAG, sUrl)
 	}
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", sUrl, nil)
 	if err != nil {
-		log.Critical("couldn't create Request to: %v", sUrl)
+		log.Error("%s couldn't create Request to: %v", TAG, sUrl)
 		return nil, err
 	}
 
@@ -142,7 +142,7 @@ func (g *Ghostclient) Get(sUrl string) (*http.Response, error) {
 	//connect to sUrl
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error("couldn't connect to: %v", sUrl)
+		log.Error("%s couldn't connect to: %v", TAG, sUrl)
 		return nil, err
 	}
 
@@ -160,10 +160,10 @@ func (g *Ghostclient) GetDailyUrl() (string, error) {
 	client := &http.Client{
 		CheckRedirect: Redirect,
 	}
-	log.Info("[GET] url: %v", DAILY)
+	log.Info("%s[GET] url: %v", TAG, DAILY)
 	req, err := http.NewRequest("GET", DAILY, nil)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return "", err
 	}
 
@@ -195,7 +195,7 @@ func (g *Ghostclient) GetDailyUrl() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Info("daily url: %v", url.String())
+	log.Info("%s daily url: %v", TAG, url.String())
 	return url.String(), nil
 
 }

@@ -82,7 +82,7 @@ func (g *Ghostparser) getImageUrl(url string) (url2 string) {
 
 	resp, err := g.Gc.Get(url)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return url2
 	}
 	defer resp.Body.Close()
@@ -105,7 +105,7 @@ func (g *Ghostparser) getImageUrl(url string) (url2 string) {
 func (g *Ghostparser) downloadImage(url string, name string) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Info("recovered from panic")
+			log.Info("%s recovered from panic", TAG)
 			return
 		}
 	}()
@@ -115,27 +115,27 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 	}
 	exist, err := exists("templates/images/" + name + ".jpg")
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 	}
 
 	if !exist {
 		resp, err := g.Gc.Get(imgurl)
 		if err != nil {
-			log.Error("image download failed, name: %v, url: %v", name, imgurl)
-			log.Error(err.Error())
+			log.Error("%s image download failed, name: %v, url: %v", TAG, name, imgurl)
+			log.Error("%s %s", TAG, err.Error())
 			return
 		}
 		defer resp.Body.Close()
 		if strings.Contains(imgurl, "jpg") || strings.Contains(imgurl, "jpeg") {
 			img, err := jpeg.Decode(resp.Body)
 			if err != nil {
-				log.Error(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				return
 			}
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
 			out, err := os.Create("templates/images/" + name + ".jpg")
 			if err != nil {
-				log.Info(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				return
 			}
 
@@ -143,16 +143,15 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 			jpeg.Encode(out, m, nil)
 			out.Close()
 		} else if strings.Contains(imgurl, "png") {
-			log.Info(imgurl)
 			img, err := png.Decode(resp.Body)
 			if err != nil {
-				log.Error(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				return
 			}
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
 			out, err := os.Create("templates/images/" + name + ".png")
 			if err != nil {
-				log.Info(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				return
 			}
 
@@ -176,7 +175,7 @@ func (g *Ghostparser) clearUrl(url string) string {
 func (g *Ghostparser) getBoardId(str string) int {
 	regex, err := regexp.Compile("boardid=.+&")
 	if err != nil {
-		log.Info(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return -1
 	}
 
@@ -188,7 +187,7 @@ func (g *Ghostparser) getBoardId(str string) int {
 	}
 	i, err := strconv.Atoi(astr[1])
 	if err != nil {
-		log.Info(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return -1
 	}
 	return i
@@ -202,11 +201,11 @@ func (g *Ghostparser) encodeName(name string) string {
 
 //parse the http resp from Townclient
 func (g *Ghostparser) ParseReleases() error {
-	log.Info("parsing %v", g.Url)
+	log.Info("%s parsing %v", TAG, g.Url)
 
 	resp, err := g.Gc.Get(g.Url)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return err
 	}
 	defer resp.Body.Close()

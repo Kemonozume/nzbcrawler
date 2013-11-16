@@ -1,6 +1,7 @@
 package town
 
 import (
+	"code.google.com/p/go-sqlite/go1/sqlite3"
 	"github.com/coopernurse/gorp"
 	log "github.com/dvirsky/go-pylog/logging"
 	"strconv"
@@ -14,9 +15,11 @@ type Townmanager struct {
 	end                 bool
 }
 
-func (t *Townmanager) Start() {
-	log.Info("townManager start")
+const (
+	TAG = "[town]"
+)
 
+func (t *Townmanager) Start() {
 	t.page = 1
 	t.end = false
 
@@ -25,10 +28,10 @@ func (t *Townmanager) Start() {
 	tc.Password = t.Password
 
 	err := t.init(tc)
-	log.Info("townclient init finished, starting to parse...")
+	log.Info("%s init finished, starting to parse...", TAG)
 	if err != nil {
-		log.Error("Townclient init failed")
-		log.Error(err.Error())
+		log.Error("%s init failed", TAG)
+		log.Error("%s %s", TAG, err.Error())
 		return
 	}
 
@@ -36,11 +39,11 @@ func (t *Townmanager) Start() {
 
 	count, err := tp.ParsePageCount()
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return
 	}
 	t.maxpage = count
-	log.Info("townclient crawling approximately %v pages", t.maxpage)
+	log.Info("%s crawling approximately %v pages", TAG, t.maxpage)
 	t.saveReleases(tp.Rel)
 
 	i := 1
@@ -48,7 +51,7 @@ func (t *Townmanager) Start() {
 		if i == 1 {
 			err = tp.ParseReleases(false)
 			if err != nil {
-				log.Error(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				break
 			}
 		} else {
@@ -56,11 +59,11 @@ func (t *Townmanager) Start() {
 			tp = &Townparser{Url: t.url + "&pp=25&page=" + strconv.Itoa(i), Tc: tc}
 			err = tp.ParseReleases(true)
 			if err != nil {
-				log.Error(err.Error())
+				log.Error("%s %s", TAG, err.Error())
 				break
 			}
 		}
-		log.Info("town: crawled page %v/%v", i, t.maxpage)
+		log.Info("%s crawled page %v/%v", TAG, i, t.maxpage)
 		t.saveReleases(tp.Rel)
 		time.Sleep(5 * time.Second)
 		i++
@@ -68,11 +71,11 @@ func (t *Townmanager) Start() {
 			break
 		}
 		if t.end {
-			log.Info("found old end point")
+			log.Info("%s found old end point", TAG)
 			break
 		}
 	}
-	log.Info("town parser closing")
+	log.Info("%s parser closing", TAG)
 
 }
 
@@ -80,11 +83,19 @@ func (t *Townmanager) saveReleases(releases []Release) {
 	for _, rel := range releases {
 		err := t.DB.Insert(&rel)
 		if err != nil {
-			log.Error(err.Error())
-			t.end = true
-			break
+			switch err.(type) {
+			case *sqlite3.Error:
+				if err.(*sqlite3.Error).Code() == 2067 {
+					t.end = true
+					break
+				} else {
+					log.Error("%s %s", TAG, err.Error())
+				}
+			default:
+				log.Error("%s %s", TAG, err.Error())
+			}
 		} else {
-			log.Info("saved %v", rel.Name)
+			log.Info("%s saved %v", TAG, rel.Name)
 		}
 	}
 
@@ -94,7 +105,7 @@ func (t *Townmanager) init(tc *Townclient) error {
 	//login to get cookies
 	err := tc.Login()
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return err
 	}
 
@@ -102,7 +113,7 @@ func (t *Townmanager) init(tc *Townclient) error {
 
 	url, err := tc.GetDailyUrl()
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("%s %s", TAG, err.Error())
 		return err
 	}
 
