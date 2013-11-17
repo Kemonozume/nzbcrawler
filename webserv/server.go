@@ -56,23 +56,52 @@ func (s *Server) Init() {
 	}
 
 	server = s
+
 	r := mux.NewRouter()
 
 	//browse
-	r.HandleFunc("/", HomeHandler)
-	r.HandleFunc("/db/events/{offset:[0-9]+}/{tags}/{name}", GetReleaseWithTagAndName)
-	r.HandleFunc("/db/event/{checksum}/link", LinkFollow)
-	r.HandleFunc("/db/event/{checksum}/score/{score}", SetRating)
+	r.Handle("/", MyHandler{func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "templates/index.html")
+	}})
+	r.Handle("/db/events/{offset:[0-9]+}/{tags}/{name}", MyHandler{GetReleaseWithTagAndName})
+	r.Handle("/db/event/{checksum}/link", MyHandler{LinkFollow})
+	r.Handle("/db/event/{checksum}/score/{score}", MyHandler{SetRating})
 
 	//logs
-	r.HandleFunc("/log", LogHandler)
-	r.HandleFunc("/log/{offset:[0-9]+}", GetLogs).Methods("GET")
-	r.HandleFunc("/log/{offset:[0-9]+}/{level}", GetLogsWithLevel).Methods("GET")
-	r.HandleFunc("/log/clearlogs", ClearLogs).Methods("POST")
+	r.Handle("/log", MyHandler{func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "templates/log.html")
+	}})
+	r.Handle("/log/{offset:[0-9]+}", MyHandler{GetLogs}).Methods("GET")
+	r.Handle("/log/{offset:[0-9]+}/{level}", MyHandler{GetLogsWithLevel}).Methods("GET")
+	r.Handle("/log/clearlogs", MyHandler{func(w http.ResponseWriter, r *http.Request) {
+		server.LogDB.Exec("drop table log")
+		server.LogDB.AddTableWithName(mydb.Log{}, "log").SetKeys(true, "Uid")
+		server.LogDB.CreateTablesIfNotExists()
+		server.LogDB.Exec("vacuum")
+		fmt.Fprintf(w, "")
+	}}).Methods("POST")
 
 	//assets
-	r.HandleFunc("/public/{file:.+}", AssetHandler)
-	r.HandleFunc("/images/{file:.+}", ImgHandler)
+	r.Handle("/public/{file:.+}", MyHandler{func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		file := vars["file"]
+		http.ServeFile(w, r, "templates/assets/"+file)
+	}})
+	r.Handle("/images/{file:.+}", MyHandler{func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		file := vars["file"]
+		w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 432000))
+		w.Header().Add("Content-Type", "image")
+		exist, err := exists("templates/images/" + file + ".jpg")
+		if err != nil {
+			log.Error(err.Error())
+		}
+		if exist {
+			http.ServeFile(w, r, "templates/images/"+file+".jpg")
+		} else {
+			http.ServeFile(w, r, "templates/images/404.jpg")
+		}
+	}})
 
 	r.HandleFunc("/key/{key}", PseudoLoginHandler)
 
@@ -81,14 +110,18 @@ func (s *Server) Init() {
 	http.ListenAndServe(s.Config2.Host+":"+s.Config2.Port, nil)
 }
 
-//BROWSE
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
+//own handler to inject auth before some http handlers
+type MyHandler struct {
+	F func(http.ResponseWriter, *http.Request)
+}
+
+func (m MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "top-kek")
 	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		http.Error(w, "forbidden", 404)
 		return
 	}
-	http.ServeFile(w, r, "templates/index.html")
+	m.F(w, r)
 }
 
 func PseudoLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,12 +142,6 @@ func PseudoLoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
 	vars := mux.Vars(r)
 	offset := vars["offset"]
 	tags := vars["tags"]
@@ -155,12 +182,6 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 }
 
 func LinkFollow(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
 	vars := mux.Vars(r)
 	checksum := vars["checksum"]
 
@@ -182,12 +203,6 @@ func LinkFollow(w http.ResponseWriter, r *http.Request) {
 }
 
 func SetRating(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
 	vars := mux.Vars(r)
 	checksum := vars["checksum"]
 	score, _ := strconv.Atoi(vars["score"])
@@ -207,23 +222,7 @@ func SetRating(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%v %v", checksum, score)
 }
 
-//LOGS
-func LogHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-	http.ServeFile(w, r, "templates/log.html")
-
-}
-
 func GetLogs(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
 	vars := mux.Vars(r)
 	offset, _ := strconv.Atoi(vars["offset"])
 
@@ -242,11 +241,6 @@ func GetLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
 	vars := mux.Vars(r)
 	offset, _ := strconv.Atoi(vars["offset"])
 	level := vars["level"]
@@ -263,57 +257,6 @@ func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintf(w, string(by))
-
-}
-
-func ClearLogs(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "defer resp.Body.Close()")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
-	worked := "worked"
-	server.LogDB.Exec("drop table log")
-	server.LogDB.AddTableWithName(mydb.Log{}, "log").SetKeys(true, "Uid")
-	server.LogDB.CreateTablesIfNotExists()
-	server.LogDB.Exec("vacuum")
-
-	fmt.Fprintf(w, worked)
-
-}
-
-//ASSETS
-func AssetHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-	vars := mux.Vars(r)
-	file := vars["file"]
-	http.ServeFile(w, r, "templates/assets/"+file)
-}
-
-func ImgHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-	vars := mux.Vars(r)
-	file := vars["file"]
-	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 432000))
-	w.Header().Add("Content-Type", "image")
-	exist, err := exists("templates/images/" + file + ".jpg")
-	if err != nil {
-		log.Error(err.Error())
-	}
-	if exist {
-		http.ServeFile(w, r, "templates/images/"+file+".jpg")
-	} else {
-		http.ServeFile(w, r, "templates/images/404.jpg")
-	}
 
 }
 
