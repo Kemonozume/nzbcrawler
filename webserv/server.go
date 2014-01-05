@@ -1,17 +1,18 @@
 package webserv
 
 import (
-	"./../mydb"
-	"./../town"
 	"encoding/json"
 	"fmt"
-	"github.com/coopernurse/gorp"
-	log "github.com/dvirsky/go-pylog/logging"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
-	"github.com/robfig/config"
 	"net/http"
 	"strconv"
+
+	"./../mydb"
+	"./../town"
+	"github.com/codegangsta/martini"
+	"github.com/codegangsta/martini-contrib/sessions"
+	"github.com/coopernurse/gorp"
+	log "github.com/dvirsky/go-pylog/logging"
+	"github.com/robfig/config"
 )
 
 type Server struct {
@@ -34,20 +35,18 @@ type Conf struct {
 	Crawl         bool
 }
 
-var server *Server
 var runner *Runner
-var store *sessions.CookieStore
 
 func (s *Server) Init() {
 
 	s.readConfig()
 
-	store = sessions.NewCookieStore([]byte(s.Config2.Secret))
-	store.Options = &sessions.Options{
+	store := sessions.NewCookieStore([]byte(s.Config2.Secret))
+	store.Options(sessions.Options{
 		Path:   "/",
 		Domain: "",
 		MaxAge: 86400 * 7,
-	}
+	})
 
 	//start Runner...
 	if s.Config2.Crawl {
@@ -55,97 +54,64 @@ func (s *Server) Init() {
 		go runner.Start()
 	}
 
-	server = s
+	m := martini.New()
 
-	r := mux.NewRouter()
+	m.Map(s)
 
-	//browse
-	r.Handle("/", MyHandler{func(w http.ResponseWriter, r *http.Request) {
+	m.Use(martini.Recovery())
+	m.Use(martini.Logger())
+	m.Use(martini.Static("templates/static"))
+	m.Use(sessions.Sessions("top-kek", store))
+
+	r := martini.NewRouter()
+	r.Get("/", Auth, func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "templates/index.html")
-	}})
-	r.Handle("/db/events/{offset:[0-9]+}/{tags}/{name}", MyHandler{GetReleaseWithTagAndName})
-	r.Handle("/db/event/{checksum}/link", MyHandler{LinkFollow})
-	r.Handle("/db/event/{checksum}/score/{score}", MyHandler{SetRating})
-
-	//logs
-	r.Handle("/log", MyHandler{func(w http.ResponseWriter, r *http.Request) {
+	})
+	r.Get("/db/events/:offset/:tags/:name", Auth, GetReleaseWithTagAndName)
+	r.Get("/db/event/:checksum/link", Auth, LinkFollow)
+	r.Get("/db/event/:checksum/score/:score", Auth, LinkFollow)
+	r.Get("/log", Auth, func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "templates/log.html")
-	}})
-	r.Handle("/log/{offset:[0-9]+}", MyHandler{GetLogs}).Methods("GET")
-	r.Handle("/log/{offset:[0-9]+}/{level}", MyHandler{GetLogsWithLevel}).Methods("GET")
-	r.Handle("/log/clearlogs", MyHandler{func(w http.ResponseWriter, r *http.Request) {
+	})
+	r.Get("/log/:offset/", Auth, GetLogs)
+	r.Get("/log/:offset/:level", Auth, GetLogsWithLevel)
+	r.Post("/log/clearlogs", Auth, func(server *Server) string {
 		server.LogDB.Exec("drop table log")
 		server.LogDB.AddTableWithName(mydb.Log{}, "log").SetKeys(true, "Uid")
 		server.LogDB.CreateTablesIfNotExists()
 		server.LogDB.Exec("vacuum")
-		fmt.Fprintf(w, "")
-	}}).Methods("POST")
+		return ""
+	})
 
-	//assets
-	r.Handle("/public/{file:.+}", MyHandler{func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		file := vars["file"]
-		http.ServeFile(w, r, "templates/assets/"+file)
-	}})
-	r.Handle("/images/{file:.+}", MyHandler{func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		file := vars["file"]
-		w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 432000))
-		w.Header().Add("Content-Type", "image")
-		exist, err := exists("templates/images/" + file + ".jpg")
-		if err != nil {
-			log.Error(err.Error())
-		}
-		if exist {
-			http.ServeFile(w, r, "templates/images/"+file+".jpg")
+	r.Get("/key/:key", func(res http.ResponseWriter, req *http.Request, server *Server, session sessions.Session, parms martini.Params) {
+		key := parms["key"]
+		if key == server.Config2.Key {
+			log.Info("Login success from %v", req.RemoteAddr)
+			session.Set("login", true)
+			http.Redirect(res, req, "/", http.StatusFound)
 		} else {
-			http.ServeFile(w, r, "templates/images/404.jpg")
+			log.Info("Login fail from %v", req.RemoteAddr)
+			http.Error(res, "forbidden", http.StatusForbidden)
 		}
-	}})
+	})
 
-	r.HandleFunc("/key/{key}", PseudoLoginHandler)
+	m.Action(r.Handle)
 
 	log.Info("listening on %v:%v", s.Config2.Host, s.Config2.Port)
-	http.Handle("/", r)
-	http.ListenAndServe(s.Config2.Host+":"+s.Config2.Port, nil)
+	http.ListenAndServe(s.Config2.Host+":"+s.Config2.Port, m)
 }
 
-//own handler to inject auth before some http handlers
-type MyHandler struct {
-	F func(http.ResponseWriter, *http.Request)
-}
-
-func (m MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "top-kek")
-	if session.Values["login"] != true {
-		http.Error(w, "forbidden", 404)
-		return
+func Auth(res http.ResponseWriter, req *http.Request, session sessions.Session) {
+	fmt.Printf("%v\n", session)
+	if session.Get("login") != true {
+		http.Error(res, "forbidden", http.StatusForbidden)
 	}
-	m.F(w, r)
 }
 
-func PseudoLoginHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["key"]
-
-	if key == server.Config2.Key {
-		log.Info("Login success from %v", r.RemoteAddr)
-		session, _ := store.Get(r, "top-kek")
-		session.Values["login"] = true
-		session.Save(r, w)
-		http.Redirect(w, r, "/", http.StatusFound)
-	} else {
-		log.Info("Login fail from %v", r.RemoteAddr)
-		http.Error(w, "forbidden", http.StatusForbidden)
-	}
-
-}
-
-func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	offset := vars["offset"]
-	tags := vars["tags"]
-	name := vars["name"]
+func GetReleaseWithTagAndName(server *Server, parms martini.Params) string {
+	offset := parms["offset"]
+	tags := parms["tags"]
+	name := parms["name"]
 	command := ""
 	if tags == "none" && name != "none" {
 		command = "select * from release where name LIKE '%" + name + "%' ORDER BY time DESC LIMIT 200 OFFSET " + offset
@@ -177,13 +143,11 @@ func GetReleaseWithTagAndName(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error())
 	}
 
-	fmt.Fprintf(w, string(by))
-
+	return string(by)
 }
 
-func LinkFollow(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	checksum := vars["checksum"]
+func LinkFollow(w http.ResponseWriter, r *http.Request, server *Server, parms martini.Params) {
+	checksum := parms["checksum"]
 
 	hits, err := server.RelDB.SelectInt("select hits from release where checksum=?", checksum)
 	if err != nil {
@@ -202,10 +166,9 @@ func LinkFollow(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-func SetRating(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	checksum := vars["checksum"]
-	score, _ := strconv.Atoi(vars["score"])
+func SetRating(server *Server, parms martini.Params) string {
+	checksum := parms["checksum"]
+	score, _ := strconv.Atoi(parms["score"])
 
 	rating, err := server.RelDB.SelectInt("select rating from release where checksum=?", checksum)
 	if err != nil {
@@ -219,12 +182,11 @@ func SetRating(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error())
 	}
 
-	fmt.Fprintf(w, "%v %v", checksum, score)
+	return fmt.Sprintf("%v %v", checksum, score)
 }
 
-func GetLogs(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	offset, _ := strconv.Atoi(vars["offset"])
+func GetLogs(server *Server, parms martini.Params) string {
+	offset, _ := strconv.Atoi(parms["offset"])
 
 	var all []mydb.Log
 	_, err := server.LogDB.Select(&all, "select * from log ORDER BY id DESC LIMIT 50 OFFSET ?", offset)
@@ -236,14 +198,13 @@ func GetLogs(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error())
 	}
 
-	fmt.Fprintf(w, string(by))
+	return string(by)
 
 }
 
-func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	offset, _ := strconv.Atoi(vars["offset"])
-	level := vars["level"]
+func GetLogsWithLevel(server *Server, parms martini.Params) string {
+	offset, _ := strconv.Atoi(parms["offset"])
+	level := parms["level"]
 
 	var all []mydb.Log
 	_, err := server.LogDB.Select(&all, "select * from log WHERE Lvl = ? ORDER BY id DESC LIMIT 50 OFFSET ?", level, offset)
@@ -256,8 +217,7 @@ func GetLogsWithLevel(w http.ResponseWriter, r *http.Request) {
 		log.Error(err.Error())
 	}
 
-	fmt.Fprintf(w, string(by))
-
+	return string(by)
 }
 
 func (s *Server) readConfig() {
