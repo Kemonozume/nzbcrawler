@@ -2,34 +2,18 @@
 <html>
 <head>
 	<title>main</title>
-	<link href='http://fonts.googleapis.com/css?family=Ubuntu:300' rel='stylesheet' type='text/css'>
-	<link rel="stylesheet" type="text/css" href="public/css/bootstrap.css" />
-	<link rel="stylesheet" type="text/css" href="public/css/main.css" />
-    <script type="text/javascript" src="public/js/jquery-1.8.3.min.js"></script>
-    <script type="text/javascript" src="public/js/underscore-min-1.5.2.js"></script>
-    <script type="text/javascript" src="public/js/backbone-1.1.0.js"></script>
+	<link rel="stylesheet" type="text/css" href="assets/css/main.css" />
+    <script type="text/javascript" src="assets/js/jquery-1.8.3.min.js"></script>
+    <script type="text/javascript" src="assets/js/underscore-min-1.5.2.js"></script>
 </head>
 <body>
  	<div id="nav1">
-	    <div class="row">
-		    <div class="col-md-3">
-		    	<div class="input-group">
-				  <span class="input-group-addon">name</span>
-				  <input id="text-name" type="text" class="form-control">
-				</div>
-				<div class="input-group">
-				  <span class="input-group-addon">tags</span>
-				  <input id="text-tags" type="text" class="form-control">
-				</div>
-		    </div>
-		    <div class="col-md-1">
-		    	<div class="spacer"></div>
-		    </div>
-		    <div class="col-md-2">
-		    	<div class="linkgroup">[<a id="movpicker">mov hd</a>] [<a id="cinpicker">cine hd</a>] [<a id="pcpicker">pc</a>] [<a id="serienpicker">serie hd</a>] [<a id="showtag">tags</a>]</div>
-		    	<div class="linkgroup2">[<a>main</a>] [<a href="/log">logs</a>]</div>
-		    </div>
-	    </div>
+ 		name: <input id="text-name" type="text"> </br>
+ 		tags: <input id="text-tags" type="text"> <br>
+ 		<div class="linkgroup">
+ 		[<a onclick="setTag('movie&hd');">mov hd</a>] [<a onclick="setTag('cine&hd');">cine hd</a>] [<a onclick="setTag('pc');">pc</a>] [<a onclick="setTag('series&hd');">serie hd</a>] [<a id="showtag">tags</a>]
+		[<a href="/log">logs</a>]
+		</div>
     </div>
 
     <br>
@@ -45,32 +29,37 @@
 	<script type="text/template" id="release-list-template">
 		<% _.each(releases, function(release) { %>
 			<div class="release">
-				<div class="crop-image">
-				<%  if (release.rating > 0) { %>
-					<img class="ribbon" src="public/img/ribbon.png">
-				<% }%>
-				<%  if (release.hits > 0) { %>
-					<img class="ribbon1" src="public/img/ribbon1.png">
-				<% }%>
-					<img title="<%= release.name %>" src="images/<%= release.checksum %>">
+				<div class="crop-image" onclick="showInfo(this);">
+					<%  if (release.hits > 0) { %>
+						<img class="ribbon" src="assets/img/ribbon1.png">
+					<% }%>
+					<img title="<%= release.name %>" src="images/<%= release.checksum %>.jpg" onerror="this.onerror=null;this.src='images/404.jpg'">
 				</div>
 				<div class="info">
 					<% var name = getMovieName(release.name) %>
 					<% if (name != null) { %>
-						<p><%= name %></p>
+						<p class="name"><%= name %></p>
 					<% }else { %>
-						<p><%= release.name %></p>
+						<p class="name"><%= release.name %></p>
 					<% } %>
-					<img onclick="upvote('<%= release.checksum %>', this)" src="public/img/up_active.png">
-					<img onclick="downvote('<%= release.checksum %>', this)" src="public/img/down_active.png">
-					<p>Rating: <%= release.rating %></p>
-					<p>Hits: <%= release.hits %></p>
-					<a target="_blank" href="/db/event/<%= release.checksum %>/link">link</a>
+					<p class="hits">Hits: <%= release.hits %></p>
+					<% var tags = release.tag.split(","); %>
+					<% for (var i = tags.length - 1; i >= 0; i--) { %>
+						<% if(tags[i].length < 20) { %>
+							<a class="link-tags" style="background-color:#<%=i%><%= (i+1*10).toString(16)%><%=i%><%= (i+1*10).toString(16)%>55;" onclick="setTag('<%= tags[i] %>')"><%= tags[i] %></a>
+						<% } %>
+					<% } %>
+					<br><br>
+					<a class="link-track" target="_blank" href="/db/event/<%= release.checksum %>/link">link</a><a class="link-notrack" target="_blank" href="<%= release.url %>">notrack</a>
+					<%  if (release.tag.indexOf("movie") !== -1  ||  release.tag.indexOf("cine") !== -1) { %>
+						<a class="link-imdb" target="_blank" href="http://www.imdb.com/find?s=tt&q=<%= name %>">imdb</a>
+					<% }%>
+					<br>
+					<br>
 				</div>
 			</div>
 		<% }); %>
 	</script>
-
-	<script type="text/javascript" src="public/js/main.js"></script>
+	<script type="text/javascript" src="assets/js/main.js"></script>
 </body>
 </html>

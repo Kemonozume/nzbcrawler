@@ -1,0 +1,129 @@
+body {
+    background-color: #1E220B;
+    font-size: 15px;
+    font-family: 'Inconsolata', Inconsolata, Monaco, Consolas, "Courier New", monospace;
+
+    overflow: hidden;
+}
+
+.release {
+	float: left;
+	position: relative;
+    padding: 5px;
+}
+
+.ribbon {
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    width: 40px !important;
+}
+
+.crop-image {
+	float: left;
+    width: 150px;
+    height: 150px;
+    overflow: hidden;
+    position: relative;
+}
+
+.crop-image img {
+    width: 150px;
+}
+
+.info {
+    width: 315px;
+    height: 150px;
+    background-color: #0A1D1F;
+    float: left;
+    padding-left: 5px;
+    display: none;
+}
+
+.info .name {
+    color: #F7FCFA;
+}
+
+.info .hits {
+    color: #F7FCFA;
+}
+
+.info .link-tags {
+    text-decoration: none;
+    padding: 5px 10px 5px 10px;
+    color: #F7FCFA;
+    float: left;
+}
+
+.info .link-track {
+    color: #080E17;
+    background-color: #91C247;
+    padding: 5px 10px 5px 10px;
+    text-decoration: none;
+}
+
+.info .link-notrack {
+    color: #080E17;
+    background-color: #BB813E;
+    padding: 5px 10px 5px 10px;
+    text-decoration: none;
+}
+
+.info .link-imdb {
+    color: #080E17;
+    background-color: #4B7FC3;
+    padding: 5px 10px 5px 10px;
+    text-decoration: none;
+}
+
+#tags {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-top: 5px;
+    margin-left: 2px;
+    margin-right: 2px;
+    background-color: #000;
+    display: none;
+}
+
+#tags a {
+    display: inline-block;
+    color: #F7FCFA;
+    margin: 20px;
+}
+
+#tcont {
+    display: block;
+    position: absolute;
+    overflow:hidden;
+    border: none;
+    top: 0px;
+}
+
+#nav1 {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    margin-left: 7px;
+    margin-right: 7px;
+    margin-bottom: 7px;
+    background: #181818;
+    z-index: 3;
+    padding: 10px;
+    color: #91C247;
+}
+
+.linkgroup {
+    float: left;
+}
+
+.linkgroup a{
+    color: #F7FCFA;
+}

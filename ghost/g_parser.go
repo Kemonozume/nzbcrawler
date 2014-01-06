@@ -1,12 +1,8 @@
 package ghost
 
 import (
-	"code.google.com/p/go.net/html"
 	"crypto/sha1"
 	"encoding/hex"
-	"github.com/PuerkitoBio/goquery"
-	log "github.com/dvirsky/go-pylog/logging"
-	"github.com/nfnt/resize"
 	"image/jpeg"
 	"image/png"
 	"os"
@@ -14,6 +10,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"code.google.com/p/go.net/html"
+	"github.com/PuerkitoBio/goquery"
+	log "github.com/dvirsky/go-pylog/logging"
+	"github.com/nfnt/resize"
 )
 
 type Release struct {
@@ -113,7 +114,7 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 	if imgurl == "" {
 		return
 	}
-	exist, err := exists("templates/images/" + name + ".jpg")
+	exist, err := exists("templates/static/images/" + name + ".jpg")
 	if err != nil {
 		log.Error("%s %s", TAG, err.Error())
 	}
@@ -133,7 +134,7 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 				return
 			}
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
-			out, err := os.Create("templates/images/" + name + ".jpg")
+			out, err := os.Create("templates/static/images/" + name + ".jpg")
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
 				return
@@ -149,7 +150,7 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 				return
 			}
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
-			out, err := os.Create("templates/images/" + name + ".png")
+			out, err := os.Create("templates/static/images/" + name + ".png")
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
 				return

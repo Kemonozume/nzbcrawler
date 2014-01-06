@@ -48,9 +48,9 @@ function addUI() {
 		return;
 	loading = true;
 	url = "/log/";
-	url += offset;
+	url += offset+"/";
 	if(cmd != "") {
-		url += "/"+cmd;
+		url += cmd;
 	}
 	$.getJSON(url, function(data) {
 		if($.isEmptyObject(data)) {

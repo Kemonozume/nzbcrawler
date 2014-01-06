@@ -59,7 +59,6 @@ func (s *Server) Init() {
 	m.Map(s)
 
 	m.Use(martini.Recovery())
-	m.Use(martini.Logger())
 	m.Use(martini.Static("templates/static"))
 	m.Use(sessions.Sessions("top-kek", store))
 

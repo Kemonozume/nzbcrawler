@@ -3,9 +3,6 @@ package town
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"github.com/dustin/goquery"
-	log "github.com/dvirsky/go-pylog/logging"
-	"github.com/nfnt/resize"
 	"image/jpeg"
 	"image/png"
 	"io/ioutil"
@@ -13,6 +10,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dustin/goquery"
+	log "github.com/dvirsky/go-pylog/logging"
+	"github.com/nfnt/resize"
 )
 
 type Release struct {
@@ -102,7 +103,7 @@ func (t *Townparser) downloadImage(url string, name string) error {
 	if url == "0" {
 		return nil
 	}
-	exist, err := exists("templates/images/" + name + ".jpg")
+	exist, err := exists("templates/static/images/" + name + ".jpg")
 	if err != nil {
 		log.Error("%s %s", TAG, err.Error())
 	}
@@ -118,7 +119,7 @@ func (t *Townparser) downloadImage(url string, name string) error {
 		if strings.Contains(url, "jpg") || strings.Contains(url, "jpeg") {
 			img, _ := jpeg.Decode(resp.Body)
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
-			out, err := os.Create("templates/images/" + name + ".jpg")
+			out, err := os.Create("templates/static/images/" + name + ".jpg")
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
 				return nil
@@ -133,7 +134,7 @@ func (t *Townparser) downloadImage(url string, name string) error {
 				log.Error("%s %s", TAG, err.Error())
 			}
 			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
-			out, err := os.Create("templates/images/" + name + ".png")
+			out, err := os.Create("templates/static/images/" + name + ".png")
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
 				return nil

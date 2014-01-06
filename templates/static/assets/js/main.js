@@ -10,9 +10,9 @@ addUI();
 $("#tags").hide();
 $("#showtag").click(function () {
     if ($("#tags")[0].style.display == "none") {
-        $("#tags").show();
+        $("#tags").show("fast");
     } else {
-        $("#tags").hide();
+        $("#tags").hide("fast");
     }
 
 });
@@ -40,82 +40,15 @@ $("#text-name").keyup(function () {
     addUI();
 });
 
-$("#movpicker").click(function () {
-    $("#text-tags").val("movies&hd");
-    tags = $("#text-tags").val()
-    if (checkValid(tags)) {
-        $("#tcont").html("");
-        document.getElementById('tcont').style.top = 0;
-        offset = 0;
-        addUI();
-    }
-});
-$("#cinpicker").click(function () {
-    $("#text-tags").val("cinema&hd");
-    tags = $("#text-tags").val()
-    if (checkValid(tags)) {
-        $("#tcont").html("");
-        document.getElementById('tcont').style.top = 0;
-        offset = 0;
-        addUI();
-    }
-});
-$("#pcpicker").click(function () {
-    $("#text-tags").val("pc");
-    tags = $("#text-tags").val()
-    if (checkValid(tags)) {
-        $("#tcont").html("");
-        document.getElementById('tcont').style.top = 0;
-        offset = 0;
-        addUI();
-    }
-});
-$("#serienpicker").click(function () {
-    $("#text-tags").val("serie&hd");
-    tags = $("#text-tags").val()
-    if (checkValid(tags)) {
-        $("#tcont").html("");
-        document.getElementById('tcont').style.top = 0;
-        offset = 0;
-        addUI();
-    }
-});
 
 
-
-function upvote(str, obj) {
-    $.get("/db/event/" + str + "/score/1", function (data) {
-        var obj2 = $(obj.parentNode).find("p")[0];
-        var rating = parseInt(obj2.innerHTML.split(":")[1]);
-        if (rating == -1) {
-            rating == 1;
-        } else {
-            rating++;
-        }
-        obj2.innerHTML = "Rating: " + rating;
-    });
-}
-
-function downvote(str, obj) {
-    $.get("/db/event/" + str + "/score/-1", function (data) {
-        var obj2 = $(obj.parentNode).find("p")[0];
-        var rating = parseInt(obj2.innerHTML.split(":")[1]);
-        if (rating == 1) {
-            rating == -1;
-        } else {
-            rating--;
-        }
-        obj2.innerHTML = "Rating: " + rating;
-    });
-}
-
-function showoverlay(bla) {
-    var obj = $(bla).find(".overlay")[0]
-    if (obj.style.display == "none") {
-        obj.style.display = "block";
-    } else {
-        obj.style.display = "none";
-    }
+function showInfo(parent) {
+    var info = parent.parentNode.childNodes[3];
+    console.log(info.style.display)
+    if(info.style.display == "none" || info.style.display == "")
+        $(info).show("fast");
+    else
+        $(info).hide("fast");
 }
 
 function getMovieName(str) {
@@ -222,8 +155,8 @@ function checkScroll(event) {
         addUI();
     }
 
-    if (delta < 0) currPos = parseInt(currPos) - (128 + 10);
-    else currPos = parseInt(currPos) + (128 + 10);
+    if (delta < 0) currPos = parseInt(currPos) - (150 + 10);
+    else currPos = parseInt(currPos) + (150 + 10);
     if (currPos > 0) currPos = 0;
 
     document.getElementById('tcont').style.top = currPos + "px";
