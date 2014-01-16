@@ -3,11 +3,10 @@ package webserv
 import (
 	"io/ioutil"
 	"sync"
-	"time"
 )
 
 type Cache struct {
-	cache      map[string]*CacheItem
+	cache      map[string][]byte
 	size       int
 	sizemax    int
 	sizefree   int
@@ -15,22 +14,12 @@ type Cache struct {
 	autodelete bool
 }
 
-type CacheItem struct {
-	Data        []byte
-	AccessCount uint
-	Added       time.Time
-}
-
-func (c *CacheItem) IncreaseHits() {
-	c.AccessCount++
-}
-
 func NewCache(cachesize int, sizefree int, autodelete bool) *Cache {
 	c := &Cache{}
 	c.sizemax = cachesize
 	c.sizefree = sizefree
 	c.autodelete = autodelete
-	c.cache = make(map[string]*CacheItem)
+	c.cache = make(map[string][]byte)
 	return c
 }
 
@@ -67,8 +56,7 @@ func (c *Cache) Add(filename string) (success bool) {
 	}
 
 	c.mutex.Lock()
-	data := &CacheItem{file, 1, time.Now()}
-	c.cache[filename] = data
+	c.cache[filename] = file
 	c.size = c.size + size
 	c.mutex.Unlock()
 	success = true
@@ -83,10 +71,9 @@ func (c *Cache) Get(filename string) []byte {
 
 	c.mutex.RLock()
 	item, bl := c.cache[filename]
-	item.IncreaseHits()
 	c.mutex.RUnlock()
 	if bl {
-		return item.Data
+		return item
 	}
 	return nil
 }
@@ -96,39 +83,24 @@ func (c *Cache) Remove(filename string) {
 	val, ok := c.cache[filename]
 	if ok {
 		delete(c.cache, filename)
-		c.size = c.size - len(val.Data)
+		c.size = c.size - len(val)
 	}
 	c.mutex.Unlock()
 }
 
 func (c *Cache) freeMemory() {
-	low := uint(1)
-	b := false
-	now := time.Now()
-	min5 := int64(time.Minute * 5)
-	for {
-		for key, value := range c.cache {
-			if c.sizemax-c.size < c.sizefree {
-				if value.AccessCount <= low {
-					//5 minute immunity to protect freshly added files
-					if int64(now.Sub(value.Added)) >= min5 {
-						c.mutex.Lock()
-						size := len(value.Data)
-						c.size = c.size - size
-						delete(c.cache, key)
-						c.mutex.Unlock()
-					}
-				}
-			} else {
-				b = true
-				break
-			}
-		}
-		low++
-		if b {
+	for key, value := range c.cache {
+		if c.sizemax-c.size < c.sizefree {
+			c.mutex.Lock()
+			size := len(value)
+			c.size = c.size - size
+			delete(c.cache, key)
+			c.mutex.Unlock()
+		} else {
 			break
 		}
 	}
+
 }
 
 func (c *Cache) exists(filename string) bool {

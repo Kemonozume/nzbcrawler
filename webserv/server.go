@@ -84,7 +84,7 @@ func (s *Server) Init() {
 		http.ServeFile(w, r, "templates/log.html")
 	})
 	r.Get("/log/cache", Auth, func() string {
-		return fmt.Sprintf("{ \"count\": %v, \"size\": %v", cache.GetSize(), cache.GetSizeInMb())
+		return fmt.Sprintf("{ \"count\": %v, \"size\": %v }", cache.GetSize(), cache.GetSizeInMb())
 	})
 	r.Get("/log/:offset/", Auth, GetLogs)
 	r.Get("/log/:offset/:level", Auth, GetLogsWithLevel)
@@ -187,6 +187,7 @@ func ServeImage(w http.ResponseWriter, r *http.Request, server *Server, parms ma
 		filename := "templates/static/images/" + checksum + ".png"
 		exist, _ = existsAsFile(filename)
 	}
+	w.Header().Add("Cache-Control", "max-age=1296000")
 	if !exist {
 		w.Write(i404)
 	}
