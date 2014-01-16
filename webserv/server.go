@@ -36,6 +36,7 @@ type Conf struct {
 	Timeout       string
 	Crawl         bool
 	Cachesize     int
+	Cachefree     int
 }
 
 var runner *Runner
@@ -59,8 +60,7 @@ func (s *Server) Init() {
 		go runner.Start()
 	}
 
-	cache = NewCache(s.Config2.Cachesize, true)
-	cache.Init()
+	cache = NewCache(s.Config2.Cachesize, s.Config2.Cachefree, true)
 
 	i404, _ = ioutil.ReadFile("templates/static/images/404.jpg")
 
@@ -82,6 +82,9 @@ func (s *Server) Init() {
 	r.Get("/db/event/:checksum/score/:score", Auth, LinkFollow)
 	r.Get("/log", Auth, func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "templates/log.html")
+	})
+	r.Get("/log/cache", Auth, func() string {
+		return fmt.Sprintf("{ \"count\": %v, \"size\": %v", cache.GetSize(), cache.GetSizeInMb())
 	})
 	r.Get("/log/:offset/", Auth, GetLogs)
 	r.Get("/log/:offset/:level", Auth, GetLogsWithLevel)
@@ -272,6 +275,7 @@ func (s *Server) readConfig() {
 	s.Config2.Crawl, _ = s.Config.Bool("default", "crawl")
 	s.Config2.Timeout, _ = s.Config.String("default", "timeout")
 	s.Config2.Cachesize, _ = s.Config.Int("default", "cachesize")
+	s.Config2.Cachefree, _ = s.Config.Int("default", "cachefree")
 }
 
 func existsAsFile(path string) (bool, error) {
