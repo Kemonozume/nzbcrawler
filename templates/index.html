@@ -33,7 +33,7 @@
 					<%  if (release.hits > 0) { %>
 						<img class="ribbon" src="assets/img/ribbon1.png">
 					<% }%>
-					<img title="<%= release.name %>" src="images/<%= release.checksum %>.jpg" onerror="this.onerror=null;this.src='images/404.jpg'">
+					<img title="<%= release.name %>" src="/db/event/<%= release.checksum %>/image">
 				</div>
 				<div class="info">
 					<% var name = getMovieName(release.name) %>

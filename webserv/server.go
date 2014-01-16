@@ -3,7 +3,9 @@ package webserv
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
 	"./../mydb"
@@ -33,9 +35,12 @@ type Conf struct {
 	Secret        string
 	Timeout       string
 	Crawl         bool
+	Cachesize     int
 }
 
 var runner *Runner
+var cache *Cache
+var i404 []byte
 
 func (s *Server) Init() {
 
@@ -54,6 +59,11 @@ func (s *Server) Init() {
 		go runner.Start()
 	}
 
+	cache = NewCache(s.Config2.Cachesize, true)
+	cache.Init()
+
+	i404, _ = ioutil.ReadFile("templates/static/images/404.jpg")
+
 	m := martini.New()
 
 	m.Map(s)
@@ -68,6 +78,7 @@ func (s *Server) Init() {
 	})
 	r.Get("/db/events/:offset/:tags/:name", Auth, GetReleaseWithTagAndName)
 	r.Get("/db/event/:checksum/link", Auth, LinkFollow)
+	r.Get("/db/event/:checksum/image", Auth, ServeImage)
 	r.Get("/db/event/:checksum/score/:score", Auth, LinkFollow)
 	r.Get("/log", Auth, func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "templates/log.html")
@@ -101,7 +112,6 @@ func (s *Server) Init() {
 }
 
 func Auth(res http.ResponseWriter, req *http.Request, session sessions.Session) {
-	fmt.Printf("%v\n", session)
 	if session.Get("login") != true {
 		http.Error(res, "forbidden", http.StatusForbidden)
 	}
@@ -163,6 +173,36 @@ func LinkFollow(w http.ResponseWriter, r *http.Request, server *Server, parms ma
 
 	url, err := server.RelDB.SelectStr("select url from release where checksum=?", checksum)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+func ServeImage(w http.ResponseWriter, r *http.Request, server *Server, parms martini.Params) {
+	checksum := parms["checksum"]
+
+	filename := "templates/static/images/" + checksum + ".jpg"
+	exist, _ := existsAsFile(filename)
+	if !exist {
+		filename := "templates/static/images/" + checksum + ".png"
+		exist, _ = existsAsFile(filename)
+	}
+	if !exist {
+		w.Write(i404)
+	}
+	if exist {
+		file := cache.Get(filename)
+		if file == nil {
+			ok := cache.Add(filename)
+			if ok {
+				file := cache.Get(filename)
+				w.Write(file)
+			} else {
+				w.Write(i404)
+			}
+
+		} else {
+			w.Write(file)
+		}
+	}
+
 }
 
 func SetRating(server *Server, parms martini.Params) string {
@@ -231,4 +271,16 @@ func (s *Server) readConfig() {
 	s.Config2.Secret, _ = s.Config.String("default", "secret")
 	s.Config2.Crawl, _ = s.Config.Bool("default", "crawl")
 	s.Config2.Timeout, _ = s.Config.String("default", "timeout")
+	s.Config2.Cachesize, _ = s.Config.Int("default", "cachesize")
+}
+
+func existsAsFile(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
