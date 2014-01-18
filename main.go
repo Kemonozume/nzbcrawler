@@ -1,13 +1,14 @@
 package main
 
 import (
+	"database/sql"
+
 	"./mydb"
 	"./town"
 	"./webserv"
 	_ "code.google.com/p/go-sqlite/go1/sqlite3"
-	"database/sql"
 	"github.com/coopernurse/gorp"
-	logging "github.com/dvirsky/go-pylog/logging"
+	"github.com/dvirsky/go-pylog/logging"
 	"github.com/robfig/config"
 )
 
