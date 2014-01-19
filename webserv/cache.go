@@ -121,14 +121,16 @@ func (c *Cache) freeMemory() {
 	low := uint32(1)
 	count := c.GetSize()
 	start := time.Now()
-	min5 := int64(time.Minute * 5)
+	sec20 := int64(time.Second * 20)
+	sec5 := int64(time.Second * 5)
+	ignoreimmunity := false
 	b := false
 	for {
 		for key, value := range c.cache {
 			if c.sizemax-c.size < c.sizefree {
 				if value.AccessCount <= low {
 					//5 minute immunity to protect freshly added files
-					if int64(start.Sub(value.Added)) >= min5 {
+					if int64(start.Sub(value.Added)) >= sec20 || ignoreimmunity {
 						c.Remove(key)
 					}
 				}
@@ -138,6 +140,9 @@ func (c *Cache) freeMemory() {
 			}
 		}
 		low++
+		if int64(time.Now().Sub(start)) >= sec5 {
+			ignoreimmunity = true
+		}
 		if b {
 			break
 		}
