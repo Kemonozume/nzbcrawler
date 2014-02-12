@@ -1,55 +1,120 @@
 var patt = new RegExp("^(.*?)(German|german|1080|720|[0-9]{4})");
-var offset = 0;
-var tags = "";
-var name = "";
-var loading = false;
-document.onmousewheel = this.checkScroll;
-addUI();
 
-
-$("#tags").hide();
-$("#showtag").click(function () {
-    if ($("#tags")[0].style.display == "none") {
-        $("#tags").show("fast");
-    } else {
-        $("#tags").hide("fast");
-    }
-
-});
-
-$("#text-tags").keyup(function () {
-    if (tags === $("#text-tags").val()) {
-        return
-    }
-    tags = $("#text-tags").val()
-    if (checkValid(tags)) {
-        $("#tcont").html("");
-        document.getElementById('tcont').style.top = 0;
-        offset = 0;
-        addUI();
-    }
-});
-$("#text-name").keyup(function () {
-    if (name === $("#text-name").val()) {
-        return
-    }
-    name = $("#text-name").val()
-    $("#tcont").html("");
-    document.getElementById('tcont').style.top = 0;
-    offset = 0;
-    addUI();
-});
-
-
-
-function showInfo(parent) {
-    var info = parent.parentNode.childNodes[3];
-    console.log(info.style.display)
-    if(info.style.display == "none" || info.style.display == "")
-        $(info).show("fast");
-    else
-        $(info).hide("fast");
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "positionClass": "toast-bottom-right",
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "linear",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
 }
+
+String.prototype.pad = function(l, s, t){
+    return s || (s = " "), (l -= this.length) > 0 ? (s = new Array(Math.ceil(l / s.length)
+        + 1).join(s)).substr(0, t = !t ? l : t == 1 ? 0 : Math.ceil(l / 2))
+        + this + s.substr(0, l - t) : this;
+};
+
+var route = RouteObj;
+var app = AppObj;
+var log = LogObj;
+
+app.activateScrollBinding();
+log.activateScrollBinding();
+
+route.addRoute("/", function() {
+    app.reset();
+    app.addUI();
+});
+route.addRoute("/stats", function() {
+    log.reset();
+    log.addUI();
+});
+route.addRoute("/logs", function() {
+    log.reset();
+    log.addUI();
+});
+route.addRoute("/movies", function() {
+    app.reset();
+    app.genre = "movie";
+    app.addUI();
+});
+route.addRoute("/movies/hd", function() {
+    app.reset();
+    app.genre = "movie&hd";
+    app.addUI();
+});
+route.addRoute("/movies/hd", function() {
+    app.reset();
+    app.genre = "movie&hd";
+    app.addUI();
+});
+route.addRoute("/movies/sd", function() {
+    app.reset();
+    app.genre = "movie&sd";
+    app.addUI();
+});
+route.addRoute("/cinema", function() {
+    app.reset();
+    app.genre = "cinema";
+    app.addUI();
+});
+route.addRoute("/cinema/hd", function() {
+    app.reset();
+    app.genre = "cinema&hd";
+    app.addUI();
+});
+route.addRoute("/cinema/sd", function() {
+    app.reset();
+    app.genre = "cinema&sd";
+    app.addUI();
+});
+route.addRoute("/serie", function() {
+    app.reset();
+    app.genre = "serie";
+    app.addUI();
+});
+route.addRoute("/serie/hd", function() {
+    app.reset();
+    app.genre = "serie&hd";
+    app.addUI();
+});
+route.addRoute("/serie/sd", function() {
+    app.reset();
+    app.genre = "serie&sd";
+    app.addUI();
+});
+route.addRoute("/pc", function() {
+    app.reset();
+    app.genre = "pc";
+    app.addUI();
+});
+route.create();
+
+
+$('#s-button').bind("click", function() {
+    parent.location.hash = "/search";
+    app.reset();
+    var bla = document.getElementById("s-name").value;
+    var bla2 = document.getElementById("s-genre").value;
+    if(bla == "") {
+        bla = "none";
+    }
+    if(bla2 == "") {
+        bla2 = "none";
+    }
+
+    app.genre = bla2;
+    app.name = bla;
+    app.addUI();
+});
+
 
 function getMovieName(str) {
     var bla = patt.exec(str);
@@ -65,113 +130,4 @@ function getMovieName(str) {
     } else {
         return null;
     }
-}
-
-function checkValid(str) {
-    astr = str.split("")
-    klammer = 0
-    valid = false
-    for (i = 0; i < astr.length; i++) {
-        if (astr[i] === "(") {
-            klammer++
-        }
-        if (astr[i] === ")") {
-            klammer--
-        }
-        if (/[a-zA-Z0-9]/.test(astr[i])) {
-            if (/[a-zA-Z0-9]/.test(astr[i + 1]) || astr[i] === "(" || astr[i + 1] === ")" || i + 1 == astr.length || astr[i + 1] === "|" || astr[i + 1] === "&") {} else {
-                break
-            }
-        }
-        if (astr[i] === "&") {
-            if ((/[a-zA-Z0-9]/.test(astr[i + 1]) || astr[i + 1] === "(" || astr[i + 1] === "!") && i + 1 != astr.length) {} else {
-                break
-            }
-        }
-        if (astr[i] === "|") {
-            if ((/[a-zA-Z0-9]/.test(astr[i + 1]) || astr[i + 1] === "(" || astr[i + 1] === "!") && i + 1 != astr.length) {} else {
-                break
-            }
-        }
-        if (astr[i] === "!") {
-            if ((/[a-zA-Z0-9]/.test(astr[i + 1])) && i + 1 != astr.length) {} else {
-                break
-            }
-        }
-        if (i == astr.length - 1) {
-            if (klammer == 0) {
-                valid = true
-            }
-        }
-
-    }
-    return valid
-}
-
-function getCmd() {
-    var cmd = "";
-    if (tags == "") {
-        cmd += "none"
-    } else {
-        tags = tags.replace(/\//g, "");
-        cmd += tags;
-    }
-    if (name == "") {
-        cmd += "/none"
-    } else {
-        cmd += ("/" + escape(name))
-    }
-    return cmd;
-}
-
-function setTag(str) {
-    $("#text-tags").val(str);
-    tags = $("#text-tags").val();
-    $("#tags").hide();
-    if (checkValid(tags)) {
-        $("#tcont").html("");
-        document.getElementById('tcont').style.top = 0;
-        offset = 0;
-        addUI();
-    }
-}
-
-function checkScroll(event) {
-    var delta = 0;
-
-    if (!event) event = window.event;
-
-    if (event.wheelDelta) {
-        delta = event.wheelDelta / 60;
-    } else if (event.detail) {
-        delta = -event.detail / 2;
-    }
-
-    var currPos = document.getElementById('tcont').offsetTop;
-    var amount2 = currPos * -1;
-
-    if (amount2 > $("#tcont").outerHeight() - 1800 && !loading) {
-        offset += 200;
-        addUI();
-    }
-
-    if (delta < 0) currPos = parseInt(currPos) - (150 + 10);
-    else currPos = parseInt(currPos) + (150 + 10);
-    if (currPos > 0) currPos = 0;
-
-    document.getElementById('tcont').style.top = currPos + "px";
-}
-
-function addUI() {
-    if (loading == true) return;
-    loading = true;
-    $.getJSON('/db/events/' + offset + "/" + getCmd(), function (data) {
-        if ($.isEmptyObject(data)) {
-            loading = false;
-            return;
-        }
-        $("#tcont").append(_.template($('#release-list-template').html(), {releases: data}));
-        loading = false;
-        offset+=200;
-    });
 }

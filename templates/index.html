@@ -1,65 +1,158 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<title>main</title>
-	<link rel="stylesheet" type="text/css" href="assets/css/main.css" />
-    <script type="text/javascript" src="assets/js/jquery-1.8.3.min.js"></script>
-    <script type="text/javascript" src="assets/js/underscore-min-1.5.2.js"></script>
-</head>
-<body>
- 	<div id="nav1">
- 		name: <input id="text-name" type="text"> </br>
- 		tags: <input id="text-tags" type="text"> <br>
- 		<div class="linkgroup">
- 		[<a onclick="setTag('movie&hd');">mov hd</a>] [<a onclick="setTag('cine&hd');">cine hd</a>] [<a onclick="setTag('pc');">pc</a>] [<a onclick="setTag('series&hd');">serie hd</a>] [<a id="showtag">tags</a>]
-		[<a href="/log">logs</a>]
-		</div>
-    </div>
-
-    <br>
-
-    <div id="tags"> 
-   		<a onclick="setTag('3D')">3D</a><a onclick="setTag('movies')">movies</a><a onclick="setTag('hd')">hd</a><a onclick="setTag('1080')">1080</a><a onclick="setTag('XVID')">XVID</a><a onclick="setTag('sd')">sd</a><a onclick="setTag('DVD')">DVD</a><a onclick="setTag('untouched')">untouched</a><a onclick="setTag('abenteuer')">abenteuer</a><a onclick="setTag('action')">action</a><a onclick="setTag('TV')">TV</a><a onclick="setTag('720')">720</a><a onclick="setTag('XVID')">XVID</a><a onclick="setTag('cinema')">cinema</a><a onclick="setTag('Deutsch')">Deutsch</a><a onclick="setTag('thriller')">thriller</a><a onclick="setTag('doku')">doku</a><a onclick="setTag('Cinema')">Cinema</a><a onclick="setTag('drama')">drama</a><a onclick="setTag('eng')">eng</a><a onclick="setTag('comedy')">comedy</a><a onclick="setTag('komödie')">komödie</a><a onclick="setTag('science')">science</a><a onclick="setTag('rips')">rips</a><a onclick="setTag('fantasy')">fantasy</a><a onclick="setTag('horror')">horror</a><a onclick="setTag('series')">series</a><a onclick="setTag('serien')">serien</a><a onclick="setTag('anime')">anime</a><a onclick="setTag('animation')">animation</a><a onclick="setTag('metal')">metal</a><a onclick="setTag('music')">music</a><a onclick="setTag('rock')">rock</a><a onclick="setTag('lossless')">lossless</a><a onclick="setTag('alternative')">alternative</a><a onclick="setTag('reggae')">reggae</a><a onclick="setTag('chill')">chill</a><a onclick="setTag('house')">house</a><a onclick="setTag('blues')">blues</a><a onclick="setTag('techno')">techno</a><a onclick="setTag('schranz')">schranz</a><a onclick="setTag('charts')">charts</a><a onclick="setTag('country')">country</a><a onclick="setTag('r&b')">r&b</a><a onclick="setTag('elektrik')">elektrik</a><a onclick="setTag('folk')">folk</a><a onclick="setTag('Rock')">Rock</a><a onclick="setTag('Discography')">Discography</a><a onclick="setTag('Metal')">Metal</a><a onclick="setTag('Sampler')">Sampler</a><a onclick="setTag('Electronic')">Electronic</a><a onclick="setTag('dance')">dance</a><a onclick="setTag('indie')">indie</a><a onclick="setTag('Nintendo')">Nintendo</a><a onclick="setTag('games')">games</a><a onclick="setTag('wii')">wii</a><a onclick="setTag('pc')">pc</a><a onclick="setTag('playstation')">playstation</a><a onclick="setTag('ps')">ps</a><a onclick="setTag('Games')">Games</a><a onclick="setTag('hardcore')">hardcore</a><a onclick="setTag('xxx')">xxx</a><a onclick="setTag('lesbian')">lesbian</a><a onclick="setTag('solo')">solo</a><a onclick="setTag('bj')">bj</a><a onclick="setTag('hj')">hj</a><a onclick="setTag('interracial')">interracial</a><a onclick="setTag('dp')">dp</a><a onclick="setTag('milf')">milf</a><a onclick="setTag('bdsm')">bdsm</a><a onclick="setTag('anal')">anal</a><a onclick="setTag('amateur')">amateur</a><a onclick="setTag('teenover')">teenover</a><a onclick="setTag('fetisch')">fetisch</a><a onclick="setTag('mature')">mature</a><a onclick="setTag('inzest')">inzest</a><a onclick="setTag('boobs')">boobs</a><a onclick="setTag('fisting')">fisting</a><a onclick="setTag('gonzo')">gonzo</a><a onclick="setTag('titts')">titts</a><a onclick="setTag('asian')">asian</a><a onclick="setTag('creampies')">creampies</a><a onclick="setTag('squirt')">squirt</a><a onclick="setTag('transexuelles')">transexuelles</a><a onclick="setTag('bizzare')">bizzare</a><a onclick="setTag('butts')">butts</a><a onclick="setTag('sonstige')">sonstige</a><a onclick="setTag('english')">english</a><a onclick="setTag('rap')">rap</a><a onclick="setTag('ps3')">ps3</a><a onclick="setTag('Englisch')">Englisch</a><a onclick="setTag('XVID')">XVID</a><a onclick="setTag('Jazz')">Jazz</a><a onclick="setTag('souls')">souls</a><a onclick="setTag('Pop')">Pop</a><a onclick="setTag('oldies')">oldies</a><a onclick="setTag('Fremdsprachig')">Fremdsprachig</a><a onclick="setTag('biographie')">biographie</a><a onclick="setTag('XVID')">XVID</a><a onclick="setTag('Englisch')">Englisch</a><a onclick="setTag('xbox')">xbox</a><a onclick="setTag('classic')">classic</a><a onclick="setTag('crime')">crime</a><a onclick="setTag('schlager')">schlager</a><a onclick="setTag('volksmusik')">volksmusik</a><a onclick="setTag('Playstation')">Playstation</a><a onclick="setTag('romanze')">romanze</a><a onclick="setTag('top')">top</a><a onclick="setTag('other')">other</a><a onclick="setTag('family')">family</a><a onclick="setTag('mac')">mac</a><a onclick="setTag('latin')">latin</a><a onclick="setTag('hentai')">hentai</a><a onclick="setTag('sport')">sport</a><a onclick="setTag('western')">western</a><a onclick="setTag('zeichentrick')">zeichentrick</a><a onclick="setTag('kriegsfilm')">kriegsfilm</a><a onclick="setTag('mixed')">mixed</a><a onclick="setTag('orgy')">orgy</a><a onclick="setTag('history')">history</a><a onclick="setTag('latino')">latino</a><a onclick="setTag('Charts')">Charts</a><a onclick="setTag('soul')">soul</a><a onclick="setTag('instrumental')">instrumental</a><a onclick="setTag('dramedy')">dramedy</a><a onclick="setTag('facials')">facials</a><a onclick="setTag('oral')">oral</a><a onclick="setTag('punk')">punk</a><a onclick="setTag('foreign')">foreign</a><a onclick="setTag('mix')">mix</a><a onclick="setTag('gothic')">gothic</a><a onclick="setTag('funk')">funk</a><a onclick="setTag('alben')">alben</a><a onclick="setTag('musikdvd')">musikdvd</a><a onclick="setTag('3ds')">3ds</a><a onclick="setTag('soundtracks')">soundtracks</a><a onclick="setTag('club')">club</a><a onclick="setTag('psp')">psp</a><a onclick="setTag('nintendo')">nintendo</a><a onclick="setTag('trickfilm')">trickfilm</a><a onclick="setTag('ps2')">ps2</a><a onclick="setTag('rock')">rock</a><a onclick="setTag('jav')">jav</a><a onclick="setTag('pics')">pics</a><a onclick="setTag('märchen')">märchen</a><a onclick="setTag('crossover')">crossover</a><a onclick="setTag('voyeur')">voyeur</a><a onclick="setTag('Sonstiges')">Sonstiges</a><a onclick="setTag('black')">black</a><a onclick="setTag('erotik')">erotik</a><a onclick="setTag('kaviar')">kaviar</a><a onclick="setTag('soundtrack')">soundtrack</a><a onclick="setTag('TV')">TV</a><a onclick="setTag('hörspiel')">hörspiel</a><a onclick="setTag('linux')">linux</a><a onclick="setTag('sampler')">sampler</a><a onclick="setTag('oper')">oper</a><a onclick="setTag('kids')">kids</a>
-    </div>
-
-	<div id="tcont_outer">
-		<div id="tcont"></div>
-	</div>
-
-	<script type="text/template" id="release-list-template">
-		<% _.each(releases, function(release) { %>
-			<div class="release">
-				<div class="crop-image" onclick="showInfo(this);">
-					<%  if (release.hits > 0) { %>
-						<img class="ribbon" src="assets/img/ribbon1.png">
-					<% }%>
-					<img title="<%= release.name %>" src="/db/event/<%= release.checksum %>/image">
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>main</title>
+		<link rel="stylesheet" type="text/css" href="assets/css/main.css" />
+		<link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css" />
+		<link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.min.css" />
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+		<script type="application/octet-stream" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.map"></script>
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+		<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.min.js"></script>
+	</head>
+	<body>
+		<nav class="navbar navbar-inverse" role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+					<a class="navbar-brand" href="#/">Nzbcrawler</a>
 				</div>
-				<div class="info">
-					<% var name = getMovieName(release.name) %>
-					<% if (name != null) { %>
-						<p class="name"><%= name %></p>
-					<% }else { %>
-						<p class="name"><%= release.name %></p>
-					<% } %>
-					<p class="hits">Hits: <%= release.hits %></p>
-					<% var tags = release.tag.split(","); %>
-					<% for (var i = tags.length - 1; i >= 0; i--) { %>
-						<% if(tags[i].length < 20) { %>
-							<a class="link-tags" style="background-color:#<%=i%><%= (i+1*10).toString(16)%><%=i%><%= (i+1*10).toString(16)%>55;" onclick="setTag('<%= tags[i] %>')"><%= tags[i] %></a>
-						<% } %>
-					<% } %>
-					<br><br>
-					<a class="link-track" target="_blank" href="/db/event/<%= release.checksum %>/link">link</a><a class="link-notrack" target="_blank" href="<%= release.url %>">notrack</a>
-					<%  if (release.tag.indexOf("movie") !== -1  ||  release.tag.indexOf("cine") !== -1) { %>
-						<a class="link-imdb" target="_blank" href="http://www.imdb.com/find?s=tt&q=<%= name %>">imdb</a>
-					<% }%>
-					<br>
-					<br>
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+					<ul class="nav navbar-nav">
+						<li  class="active"><a href="#/">browse</a></li>
+						<li class="dropdown">
+							<a class="dropdown-toggle" data-toggle="dropdown">mov <b class="caret"></b></a>
+							<ul class="dropdown-menu">
+								<li ><a href="#/movies">all</a></li>
+								<li ><a href="#/movies/hd">hd</a></li>
+								<li ><a href="#/movies/sd">sd</a></li>
+							</ul>
+						</li>
+						<li class="dropdown">
+							<a  class="dropdown-toggle" data-toggle="dropdown">cin <b class="caret"></b></a>
+							<ul class="dropdown-menu">
+								<li ><a href="#/cinema">all</a></li>
+								<li ><a href="#/cinema/hd">hd</a></li>
+								<li ><a href="#/cinema/sd">sd</a></li>
+							</ul>
+						</li>
+						<li class="dropdown">
+							<a  class="dropdown-toggle" data-toggle="dropdown">serie <b class="caret"></b></a>
+							<ul class="dropdown-menu">
+								<li ><a href="#/serie">all</a></li>
+								<li ><a href="#/serie/hd">hd</a></li>
+								<li ><a href="#/serie/sd">sd</a></li>
+							</ul>
+						</li>
+						<li ><a href="#/pc">pc</a></li>
+					</ul>
+					<form class="navbar-form navbar-left" role="search">
+						<div class="form-group">
+							<input id="s-name" type="text" class="form-control input-sm" placeholder="name">
+							<input id="s-genre" type="text" class="form-control input-sm" placeholder="genre">
+						</div>
+						<button id="s-button" class="btn btn-default">suchen</button>
+					</form>
+					<ul class="nav navbar-nav navbar-right">
+						<li class="dropdown">
+							<a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span><b class="caret"></b></a>
+							<ul class="dropdown-menu">
+								<li ><a href="#/logs">logs</a></li>
+								<li ><a href="#/stats">stats</a></li>
+							</ul>
+						</li>
+					</ul>
 				</div>
 			</div>
+		</nav>
+		<div id="root" class="container-fluid">
+			<div id="tcont"></div>
+			<div id="lcont"></div>
+		</div>
+
+		<script type="text/template" id="release-list-template">
+			<% _.each(releases, function(release) { %>
+				<div class="release">
+					<div class="crop-image" onclick="app.showInfo(this);">
+						<%  if (release.hits > 0) { %>
+							<img class="ribbon" src="assets/img/ribbon1.png">
+							<% }%>
+							<img title="<%= release.name %>" src="/db/event/<%= release.checksum %>/image" onerror="this.onerror=null;this.src='images/404.jpg'">
+						</div>
+						<div class="info">
+							<% var name = getMovieName(release.name) %>
+							<% if (name != null) { %>
+								<p class="name"><%= name %></p>
+							<% }else { %>
+								<p class="name"><%= release.name %></p>
+							<% } %>
+							<p class="hits">Hits: <%= release.hits %></p>
+							<% var tags = release.tag.split(","); %>
+							<% var incr = 255/tags.length; %>
+							<% incr = ~~incr %>
+							<% var val = 0; %>
+							<% for (var i = tags.length - 1; i >= 0; i--) { %>
+								<% if(tags[i].length < 16) { %>
+									<a class="link-tags" style="background-color: rgb(102,<%=val%>,0);" onclick="app.setTag('<%= tags[i] %>')"><%= tags[i] %></a>
+									<% val += incr; %>
+								<% } %>
+							<% } %>
+							<br><br>
+							<a class="link-track" target="_blank" href="/db/event/<%= release.checksum %>/link">link</a><a class="link-notrack" target="_blank" href="<%= release.url %>">notrack</a>
+							<%  if (release.tag.indexOf("movie") !== -1  ||  release.tag.indexOf("cine") !== -1) { %>
+								<a class="link-imdb" target="_blank" href="http://www.imdb.com/find?s=tt&q=<%= name %>">imdb</a>
+							<% }%>
+							<br>
+							<br>
+						</div>
+					</div>
 		<% }); %>
 	</script>
-	<script type="text/javascript" src="assets/js/main.js"></script>
+
+	<script type="text/template" id="log-info-template">
+		<div class="btn-toolbar" role="toolbar">
+			<div class="btn-group">
+				<button type="button" class="btn btn-default">all</button>
+				<button type="button" class="btn btn-default">info</button>
+				<button type="button" class="btn btn-default">error</button>
+			</div>
+			<div class="btn-group"><button type="button" class="btn btn-default">clear</button></div>
+		</div>
+		<table class="table table-striped">
+			<thead>
+				<tr>
+		        	<th>date</th>
+		        	<th>time</th>
+		        	<th>level</th>
+		        	<th>line</th>
+		        	<th>message</th>
+	        	</tr>
+			</thead>
+			<tbody id="ltbody">
+			</tbody>
+		</table>
+	</script>
+
+	<script type="text/template" id="log-list-template">
+		<% _.each(blogs, function(blog) { %>
+			<tr>
+				<th><%= blog.Date%></th>
+				<th><%= blog.Timestamp%></th>
+				<th><%= blog.Lvl%></th>
+				<th><%= blog.Line%></th>
+				<th><%= blog.Message%></th>
+			</tr>
+		<% }); %>
+	</script>
+<script type="text/javascript" src="assets/js/routes.js"></script>
+<script type="text/javascript" src="assets/js/app.js"></script> 
+<script type="text/javascript" src="assets/js/log.js"></script> 
+<script type="text/javascript" src="assets/js/main.js"></script>
 </body>
 </html>

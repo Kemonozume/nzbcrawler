@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"./../data"
 
 	"code.google.com/p/go.net/html"
 	"github.com/PuerkitoBio/goquery"
@@ -17,21 +18,10 @@ import (
 	"github.com/nfnt/resize"
 )
 
-type Release struct {
-	Checksum string `json:"checksum"`
-	Url      string `json:"url"`
-	Name     string `json:"name"`
-	Tag      string `json:"tag"`
-	Time     int64  `json:"time"`
-	Rating   int32  `json:"rating"`
-	Hits     int    `json:"hits"`
-	Image    string `db:"-"`
-}
-
 type Ghostparser struct {
 	Url   string
 	Gc    *Ghostclient
-	Rel   []Release
+	Rel   []data.Release
 	Count int
 }
 
@@ -54,7 +44,7 @@ func exists(path string) (bool, error) {
 	return false, err
 }
 
-func (g *Ghostparser) getUrlAndTagAndName(rel *Release, sc *goquery.Selection) {
+func (g *Ghostparser) getUrlAndTagAndName(rel *data.Release, sc *goquery.Selection) {
 	sc.Find("a").Each(func(d int, sd *goquery.Selection) {
 		switch d {
 		case 0:
@@ -65,10 +55,10 @@ func (g *Ghostparser) getUrlAndTagAndName(rel *Release, sc *goquery.Selection) {
 		case 1:
 			if attr, exist := sd.Attr("href"); exist {
 				if rel.Name != "" {
-					rel.addTag(sd.Text())
+					rel.AddTag(sd.Text())
 					i := g.getBoardId(attr)
 					if i != -1 {
-						rel.checkCat(i)
+						g.checkCat(rel, i)
 					} else {
 						rel.Name = ""
 						rel.Checksum = ""
@@ -214,24 +204,24 @@ func (g *Ghostparser) ParseReleases() error {
 	respbody, err := html.Parse(resp.Body)
 	doc := goquery.NewDocumentFromNode(respbody)
 
-	var rel Release
+	var rel data.Release
 	doc.Find("table").Each(func(a int, sa *goquery.Selection) {
 		if a == 10 { //get the right table
 			sa.Find("tr").Each(func(b int, sb *goquery.Selection) {
 				sb.Find("td").Each(func(c int, sc *goquery.Selection) {
 					if c == 2 {
-						rel = Release{}
+						rel = data.Release{}
 						g.getUrlAndTagAndName(&rel, sc)
 
 						if rel.Name != "" {
 							rel.Time = time.Now().Unix()
 							rel.Checksum = g.encodeName(rel.Url)
-							rel.checkQual()
+							g.checkQual(&rel)
 							if rel.Name != "" {
 								rel.Hits = 0
 								rel.Rating = 0
 								g.downloadImage(rel.Url, rel.Checksum)
-								g.addRelease(rel)
+								g.Rel = append(g.Rel, rel)
 							}
 						}
 					}
@@ -252,148 +242,129 @@ func (g *Ghostparser) ParseReleases() error {
 	return nil
 }
 
-func (r *Release) checkQual() {
+func (g *Ghostparser) checkQual(r *data.Release) {
 	if strings.Contains(r.Tag, "music") || strings.Contains(r.Tag, "games") {
 		return
 	}
 	if strings.Contains(r.Name, "1080") {
-		r.addTag("1080")
+		r.AddTag("1080")
 	} else if strings.Contains(r.Name, "720") {
-		r.addTag("720")
+		r.AddTag("720")
 	} else if strings.Contains(r.Name, "untouched") {
-		r.addTag("untouched")
+		r.AddTag("untouched")
 	} else if strings.Contains(r.Name, "3d") {
-		r.addTag("3d")
+		r.AddTag("3d")
 	} else if !strings.Contains(r.Url, "720") && !strings.Contains(r.Url, "1080") && !strings.Contains(r.Url, "untouched") && !strings.Contains(r.Url, "3d") {
-		r.addTag("sd")
+		r.AddTag("sd")
 	} else {
-		r.addTag("sd")
+		r.AddTag("sd")
 	}
 }
 
-func (r *Release) checkCat(boardid int) {
+func (g *Ghostparser) checkCat(r *data.Release, boardid int) {
 	switch boardid {
 	case 26:
-		r.addTag("cinema")
+		r.AddTag("cinema")
 	case 176:
-		r.addTag("cinema")
-		r.addTag("hd")
+		r.AddTag("cinema")
+		r.AddTag("hd")
 	case 28, 29, 59:
-		r.addTag("cinema")
-		r.addTag("sd")
+		r.AddTag("cinema")
+		r.AddTag("sd")
 	case 101:
-		r.addTag("movies")
+		r.AddTag("movies")
 	case 124, 125, 127, 1, 4, 6, 7:
-		r.addTag("movies")
-		r.addTag("sd")
+		r.AddTag("movies")
+		r.AddTag("sd")
 	case 157, 158, 159, 211, 212, 160, 119, 120, 121, 213, 214, 122, 150, 202, 203, 141:
-		r.addTag("movies")
-		r.addTag("hd")
+		r.AddTag("movies")
+		r.AddTag("hd")
 	case 143, 144, 145, 146:
-		r.addTag("movies")
-		r.addTag("hd")
-		r.addTag("eng")
+		r.AddTag("movies")
+		r.AddTag("hd")
+		r.AddTag("eng")
 	case 53:
-		r.addTag("series")
+		r.AddTag("series")
 	case 77, 65, 215:
-		r.addTag("series")
-		r.addTag("sd")
+		r.AddTag("series")
+		r.AddTag("sd")
 	case 216, 217:
-		r.addTag("series")
-		r.addTag("hd")
+		r.AddTag("series")
+		r.AddTag("hd")
 	case 175, 208:
-		r.addTag("series")
-		r.addTag("hd")
-		r.addTag("eng")
+		r.AddTag("series")
+		r.AddTag("hd")
+		r.AddTag("eng")
 	case 225:
-		r.addTag("series")
-		r.addTag("sd")
-		r.addTag("eng")
+		r.AddTag("series")
+		r.AddTag("sd")
+		r.AddTag("eng")
 	case 12, 21, 19:
-		r.addTag("music")
+		r.AddTag("music")
 	case 166:
-		r.addTag("music")
-		r.addTag("rock")
+		r.AddTag("music")
+		r.AddTag("rock")
 	case 167:
-		r.addTag("music")
-		r.addTag("pop")
+		r.AddTag("music")
+		r.AddTag("pop")
 	case 168:
-		r.addTag("music")
-		r.addTag("jazz")
-		r.addTag("blues")
-		r.addTag("souls")
-		r.addTag("country")
-		r.addTag("reggae")
+		r.AddTag("music")
+		r.AddTag("jazz")
+		r.AddTag("blues")
+		r.AddTag("souls")
+		r.AddTag("country")
+		r.AddTag("reggae")
 	case 169:
-		r.addTag("music")
-		r.addTag("hip-hop")
+		r.AddTag("music")
+		r.AddTag("hip-hop")
 	case 170:
-		r.addTag("music")
-		r.addTag("electronic")
+		r.AddTag("music")
+		r.AddTag("electronic")
 	case 171:
-		r.addTag("music")
-		r.addTag("schlager")
-		r.addTag("volksmusik")
+		r.AddTag("music")
+		r.AddTag("schlager")
+		r.AddTag("volksmusik")
 	case 172:
-		r.addTag("music")
-		r.addTag("oldies")
+		r.AddTag("music")
+		r.AddTag("oldies")
 	case 173:
-		r.addTag("music")
-		r.addTag("metal")
+		r.AddTag("music")
+		r.AddTag("metal")
 	case 174:
-		r.addTag("music")
-		r.addTag("soundtrack")
+		r.AddTag("music")
+		r.AddTag("soundtrack")
 	case 48:
-		r.addTag("music")
-		r.addTag("hörbuch")
+		r.AddTag("music")
+		r.AddTag("hörbuch")
 	case 147:
-		r.addTag("music")
-		r.addTag("classic")
+		r.AddTag("music")
+		r.AddTag("classic")
 	case 177:
-		r.addTag("music")
-		r.addTag("discography")
+		r.AddTag("music")
+		r.AddTag("discography")
 	case 51:
-		r.addTag("games")
-		r.addTag("pc")
+		r.AddTag("games")
+		r.AddTag("pc")
 	case 32:
-		r.addTag("games")
-		r.addTag("xbox360")
+		r.AddTag("games")
+		r.AddTag("xbox360")
 	case 34:
-		r.addTag("games")
-		r.addTag("ps")
+		r.AddTag("games")
+		r.AddTag("ps")
 	case 37:
-		r.addTag("games")
-		r.addTag("wii")
+		r.AddTag("games")
+		r.AddTag("wii")
 	case 74:
-		r.addTag("xxx")
+		r.AddTag("xxx")
 	case 85:
-		r.addTag("xxx")
-		r.addTag("hd")
+		r.AddTag("xxx")
+		r.AddTag("hd")
 	case 70, 71, 133:
-		r.addTag("xxx")
-		r.addTag("sd")
+		r.AddTag("xxx")
+		r.AddTag("sd")
 	default:
 		r.Name = ""
 		r.Checksum = ""
 
 	}
-}
-
-func (r *Release) addTag(tag string) {
-	if r.Tag == "" {
-		r.Tag = tag
-	} else {
-		r.Tag += "," + tag
-	}
-}
-
-//adds a release to the Release slice of Townparser
-func (g *Ghostparser) addRelease(r Release) {
-	if len(g.Rel)+1 > cap(g.Rel) {
-		temp := make([]Release, len(g.Rel), len(g.Rel)+1)
-		copy(temp, g.Rel)
-		g.Rel = temp
-	}
-	g.Rel = g.Rel[0 : len(g.Rel)+1]
-	g.Rel[len(g.Rel)-1] = r
 }

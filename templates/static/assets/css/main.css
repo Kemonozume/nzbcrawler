@@ -2,8 +2,26 @@ body {
     background-color: #1E220B;
     font-size: 15px;
     font-family: 'Inconsolata', Inconsolata, Monaco, Consolas, "Courier New", monospace;
+}
 
-    overflow: hidden;
+#tcont {
+    position: absolute;
+    overflow: auto;
+    border: none;
+    height: 90%;
+}
+
+#lcont {
+    position: absolute;
+    overflow: auto;
+    border: none;
+    vertical-align: center;
+    height: 90%;
+    width: 98%;
+}
+
+nav {
+    z-index: 7;
 }
 
 .release {
@@ -32,9 +50,9 @@ body {
 }
 
 .info {
-    width: 315px;
+    width: 320px;
     height: 150px;
-    background-color: #0A1D1F;
+    background-color: #bf5a16;
     float: left;
     padding-left: 5px;
     display: none;
@@ -50,7 +68,7 @@ body {
 
 .info .link-tags {
     text-decoration: none;
-    padding: 5px 10px 5px 10px;
+    padding: 5px 8px 5px 8px;
     color: #F7FCFA;
     float: left;
 }
@@ -74,56 +92,4 @@ body {
     background-color: #4B7FC3;
     padding: 5px 10px 5px 10px;
     text-decoration: none;
-}
-
-#tags {
-    position: absolute;
-    z-index: 2;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-top: 5px;
-    margin-left: 2px;
-    margin-right: 2px;
-    background-color: #000;
-    display: none;
-}
-
-#tags a {
-    display: inline-block;
-    color: #F7FCFA;
-    margin: 20px;
-}
-
-#tcont {
-    display: block;
-    position: absolute;
-    overflow:hidden;
-    border: none;
-    top: 0px;
-}
-
-#nav1 {
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    margin-left: 7px;
-    margin-right: 7px;
-    margin-bottom: 7px;
-    background: #181818;
-    z-index: 3;
-    padding: 10px;
-    color: #91C247;
-}
-
-.linkgroup {
-    float: left;
-}
-
-.linkgroup a{
-    color: #F7FCFA;
 }

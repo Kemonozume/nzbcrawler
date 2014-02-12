@@ -1,11 +1,13 @@
 package town
 
 import (
+	"strconv"
+	"time"
+
+	"./../data"
 	"code.google.com/p/go-sqlite/go1/sqlite3"
 	"github.com/coopernurse/gorp"
 	log "github.com/dvirsky/go-pylog/logging"
-	"strconv"
-	"time"
 )
 
 type Townmanager struct {
@@ -79,7 +81,7 @@ func (t *Townmanager) Start() {
 
 }
 
-func (t *Townmanager) saveReleases(releases []Release) {
+func (t *Townmanager) saveReleases(releases []data.Release) {
 	for _, rel := range releases {
 		err := t.DB.Insert(&rel)
 		if err != nil {

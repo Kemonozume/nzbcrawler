@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 
+	"./data"
 	"./mydb"
-	"./town"
 	"./webserv"
 	_ "code.google.com/p/go-sqlite/go1/sqlite3"
 	"github.com/coopernurse/gorp"
@@ -24,7 +24,7 @@ func main() {
 		panic(err.Error())
 	}
 	reldb := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-	reldb.AddTableWithName(town.Release{}, "release").SetKeys(false, "Checksum").ColMap("Checksum").SetUnique(true).SetNotNull(true)
+	reldb.AddTableWithName(data.Release{}, "release").SetKeys(false, "Checksum").ColMap("Checksum").SetUnique(true).SetNotNull(true)
 	reldb.CreateTablesIfNotExists()
 
 	//db for logs

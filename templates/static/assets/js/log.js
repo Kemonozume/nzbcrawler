@@ -1,110 +1,73 @@
-var cmd = "";
-var offset = 0;
-var loading = false;
-$(window).load(function() {
-	document.onmousewheel = moveObject;
-	addUI();
-	$("#clear").click(function(e) {
-		e.preventDefault();
-		$.post('/log/clearlogs', function(data) {
-			$("#tcont").html("");
-			addUI();
-		});
-	})
-	$("#all").click(function(e) {
-		if(cmd == "")
-			return
-		cmd = "";
-		offset = 0;
-		$("#tcont").html("");
-		addUI();
-	})
-	$("#info").click(function(e) {
-		if(cmd == "INFO")
-			return
-		cmd = "INFO";
-		offset = 0;
-		$("#tcont").html("");
-		addUI();
-	})
-	$("#error").click(function(e) {
-		if(cmd == "ERROR")
-			return
-		offset = 0;
-		cmd = "ERROR";
-		$("#tcont").html("");
-		addUI();
-	})
-});
+var LogObj = {
+	level: "",
+	offset: 0,
+	isLoading: false,
 
-String.prototype.pad = function(l, s, t){
-    return s || (s = " "), (l -= this.length) > 0 ? (s = new Array(Math.ceil(l / s.length)
-        + 1).join(s)).substr(0, t = !t ? l : t == 1 ? 0 : Math.ceil(l / 2))
-        + this + s.substr(0, l - t) : this;
-};
 
-function addUI() {
-	if(loading == true)
-		return;
-	loading = true;
-	url = "/log/";
-	url += offset+"/";
-	if(cmd != "") {
-		url += cmd;
-	}
-	$.getJSON(url, function(data) {
-		if($.isEmptyObject(data)) {
-			loading = false;
+	reset: function() {
+		this.level = "";
+		this.offset = 0;
+		$("#lcont").empty();
+	},
+
+	addUI: function() {
+		var that = this;
+		$("#lcont").show();
+		if (this.isLoading) {
 			return;
 		}
-		$.each(data, function(key, val) {
-			line = val.Line;
-			line = line.pad(30, " ", 1);
-			message = val.Message;
-			if(val.Lvl == "INFO") 
-				message = "[+] "+message;
-			else 
-				message = "[-] "+message;
-			
-			console.log(line);
-		  	$("<div class=\"row\"><div>"+val.Date+"</div><div>"+val.Timestamp+"</div><span>"+line+"</span><div>"+message+"</div></div>").appendTo("#tcont");
-		  	if(data.length-1 == key) {
-		  		loading = false;
-		  		offset += 50;
-		  	}
-		});			  
-	});
-}
+		if(document.getElementById("lcont").childNodes.length == 0) {
+			var th
+			$("#lcont").append(_.template($('#log-info-template').html()));
+			$(".btn-group > button.btn").on("click", function(){
+				var opt = this.innerHTML;
+				if(opt === "clear") {
+					that.clearLogs();
+					return;
+				}
+				that.reset();
+				if(opt === "all"){
+					that.level = "";
+				}else {
+					that.level = opt.toUpperCase();
+				}
+				that.addUI();
 
+			});
+		}
+		this.isLoading = true;
+		var url = '/db/log/' + this.offset;
+		url += (this.level == "") ? "/" : "/" + this.level;
+		console.log(url);
+		$.getJSON(url, function (data) {
+			if ($.isEmptyObject(data)) {
+				that.isLoading = false;
+				toastr.info("no more data to display~~");
+				return;
+			}
+			console.log(data);
+			$("#ltbody").append(_.template($('#log-list-template').html(), {blogs: data}));
+			that.isLoading = false;
+			that.offset += 50;			  
+		});
+	},
 
+	activateScrollBinding: function() {
+		var that = this;
+		$("#lcont").scroll(function() {
+			if($("#lcont").scrollTop() + $("#lcont").height() == $("#lcont")[0].scrollHeight) {
+				that.addUI();
+			}
+		})
+	},
 
-function moveObject(event) {
-	var delta = 0;
-		 
-    if (!event) event = window.event;
-    	// normalize the delta
-	if (event.wheelDelta) {
-		delta = event.wheelDelta / 60; 
-	} else if (event.detail) {
-		delta = -event.detail / 2;
+	clearLogs: function() {
+		var that = this;
+		$.post('/log/clearlogs', function(data) {
+			//$("#tcont").html("");
+			that.reset();
+			that.addUI();
+		});
 	}
-	var currPos=document.getElementById('tcont').offsetTop;
-	var amount2 = currPos *-1;
-	console.log(currPos);
-	console.log(amount2);
-
-	if(amount2 > $("#tcont").outerHeight()-1400 ) {
-		console.log("addUI()");
-		addUI();
-	}
-
-	if(delta < 0) 
-		currPos=parseInt(currPos)-(128+10);
-	else 
-		currPos=parseInt(currPos)+(128+10);
-
-	if(currPos > 0)
-		currPos = 0;
-	//moving the position of the object
-	document.getElementById('tcont').style.top = currPos+"px";
+	
 }

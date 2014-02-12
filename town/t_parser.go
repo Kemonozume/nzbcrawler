@@ -10,27 +10,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"./../data"
 
 	"github.com/dustin/goquery"
 	log "github.com/dvirsky/go-pylog/logging"
 	"github.com/nfnt/resize"
 )
 
-type Release struct {
-	Checksum string `json:"checksum"`
-	Url      string `json:"url"`
-	Name     string `json:"name"`
-	Tag      string `json:"tag"`
-	Time     int64  `json:"time"`
-	Rating   int32  `json:"rating"`
-	Hits     int    `json:"hits"`
-	Image    string `db:"-"`
-}
-
 type Townparser struct {
 	Url  string
 	Tc   *Townclient
-	Rel  []Release
+	Rel  []data.Release
 	Site []byte
 }
 
@@ -180,14 +170,14 @@ func (t *Townparser) ParseReleases(flush bool) error {
 
 	node.Find("#threadslist tbody tr").Each(func(index int, element *goquery.Node) {
 		nodes := goquery.Nodes{element}
-		var rel Release
+		var rel data.Release
 		nodes.Find("td").Each(func(index int, element *goquery.Node) {
 			nodes := goquery.Nodes{element}
 			class := nodes.Attr("class")
 			if strings.Contains(class, "alt") {
 				switch index {
 				case 0:
-					rel = Release{}
+					rel = data.Release{}
 				case 1:
 					rel.Image = element.Child[1].Attr[2].Val
 				case 2:
@@ -200,7 +190,7 @@ func (t *Townparser) ParseReleases(flush bool) error {
 								text = strings.Join(strings.Split(text, "/"), ",")
 							}
 							text = strings.ToLower(text)
-							rel.addTag(text)
+							rel.AddTag(text)
 						case 2:
 							rel.Name = nodes2.Text()
 							rel.Url = nodes2.Attr("href")
@@ -209,12 +199,12 @@ func (t *Townparser) ParseReleases(flush bool) error {
 					})
 				case 6:
 					rel.Time = time.Now().Unix()
-					rel.fillRelease()
+					t.fillRelease(&rel)
 					if rel.Checksum != "" {
 						rel.Hits = 0
 						rel.Rating = 0
 						t.downloadImage(rel.Image, rel.Checksum)
-						t.addRelease(rel)
+						t.Rel = append(t.Rel, rel)
 					}
 				}
 			}
@@ -225,99 +215,80 @@ func (t *Townparser) ParseReleases(flush bool) error {
 	return nil
 }
 
-func (r *Release) fillRelease() {
+func (t *Townparser) fillRelease(r *data.Release) {
 	url := r.Url
 	subforum := strings.Split(url, "/")[0]
-	r.checkCat(subforum)
+	t.checkCat(r, subforum)
 	r.Url = "http://www.town.ag/v2/" + r.Url
-	r.checkQual()
+	t.checkQual(r)
 }
 
-func (r *Release) addTag(tag string) {
-	if r.Tag == "" {
-		r.Tag = tag
-	} else {
-		r.Tag += "," + tag
-	}
-}
-
-func (r *Release) checkQual() {
+func (t *Townparser) checkQual(r *data.Release) {
 	if strings.Contains(r.Tag, "music") || strings.Contains(r.Tag, "games") {
 		return
 	}
 	if strings.Contains(r.Name, "1080") {
-		r.addTag("1080")
-		r.addTag("hd")
+		r.AddTag("1080")
+		r.AddTag("hd")
 	} else if strings.Contains(r.Name, "720") {
-		r.addTag("720")
-		r.addTag("hd")
+		r.AddTag("720")
+		r.AddTag("hd")
 	} else if strings.Contains(r.Name, "untouched") {
-		r.addTag("untouched")
+		r.AddTag("untouched")
 	} else if strings.Contains(r.Name, "3d") {
-		r.addTag("3d")
+		r.AddTag("3d")
 	} else if !strings.Contains(r.Url, "720") && !strings.Contains(r.Url, "1080") && !strings.Contains(r.Url, "untouched") && !strings.Contains(r.Url, "3d") {
-		r.addTag("sd")
+		r.AddTag("sd")
 	} else {
-		r.addTag("sd")
+		r.AddTag("sd")
 	}
 }
 
-func (r *Release) checkCat(subforum string) {
+func (t *Townparser) checkCat(r *data.Release, subforum string) {
 	switch subforum {
 	case "cine-xvid-mvcd-svcd", "cine-dvd", "cine-hd-blu-ray":
-		r.addTag("cinema")
+		r.AddTag("cinema")
 	case "international-cine-corner":
-		r.addTag("cinema")
-		r.addTag("eng")
+		r.AddTag("cinema")
+		r.AddTag("eng")
 	case "720p-movies", "1080p-movies", "untouched", "doku-sport-musik", "3d-formate", "xvid", "dvd", "doku-xvid", "doku-dvd-hd":
-		r.addTag("movies")
+		r.AddTag("movies")
 	case "720p-corner", "1080p-corner", "dvd-movies", "xvid-movies":
-		r.addTag("movies")
-		r.addTag("eng")
+		r.AddTag("movies")
+		r.AddTag("eng")
 	case "kiddy-zone", "kids-serie", "aktuelle-serien-hd-xvid", "komplette-staffeln":
-		r.addTag("series")
+		r.AddTag("series")
 	case "tv-series-complete", "tv-series":
-		r.addTag("series")
-		r.addTag("eng")
+		r.AddTag("series")
+		r.AddTag("eng")
 	case "anime-mangas":
-		r.addTag("series")
-		r.addTag("anime")
+		r.AddTag("series")
+		r.AddTag("anime")
 	case "xxx-0-day-englisch", "xxx-dvd-hd", "xxx-france-italia", "xxx-pix-siterips-clips", "xxx-englisch", "xxx-german", "xxx-other", "big-packs-over-5gb":
-		r.addTag("xxx")
+		r.AddTag("xxx")
 	case "xxx-asian":
-		r.addTag("xxx")
-		r.addTag("asian")
+		r.AddTag("xxx")
+		r.AddTag("asian")
 	case "spiele", "sonstiges":
-		r.addTag("games")
-		r.addTag("pc")
+		r.AddTag("games")
+		r.AddTag("pc")
 	case "xbox", "xbox360", "xbox360-sonstiges":
-		r.addTag("games")
-		r.addTag("xbox")
+		r.AddTag("games")
+		r.AddTag("xbox")
 	case "playstation-1", "playstation-2", "playstation-3", "playstation-portable", "ps3-sonstiges":
-		r.addTag("games")
-		r.addTag("playstation")
-		r.addTag("ps")
+		r.AddTag("games")
+		r.AddTag("playstation")
+		r.AddTag("ps")
 	case "nds-gba", "wii-gamecube", "wii-sonstiges":
-		r.addTag("games")
-		r.addTag("wii")
+		r.AddTag("games")
+		r.AddTag("wii")
 	case "alben", "discography", "hoerbuecher-allgemein", "klassiker-oldies", "charts", "musik-dvd-xvid", "musik-others":
-		r.addTag("music")
+		r.AddTag("music")
 	case "lossless":
-		r.addTag("music")
-		r.addTag("lossless")
+		r.AddTag("music")
+		r.AddTag("lossless")
 	default:
 		r.Checksum = ""
 
 	}
-}
-
-//adds a release to the Release slice of Townparser
-func (t *Townparser) addRelease(r Release) {
-	if len(t.Rel)+1 > cap(t.Rel) {
-		temp := make([]Release, len(t.Rel), len(t.Rel)+1)
-		copy(temp, t.Rel)
-		t.Rel = temp
-	}
-	t.Rel = t.Rel[0 : len(t.Rel)+1]
-	t.Rel[len(t.Rel)-1] = r
 }

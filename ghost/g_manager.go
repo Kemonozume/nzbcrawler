@@ -1,12 +1,12 @@
 package ghost
 
 import (
-	"../town"
+	"strconv"
+	"time"
+	"./../data"
 	"code.google.com/p/go-sqlite/go1/sqlite3"
 	"github.com/coopernurse/gorp"
 	log "github.com/dvirsky/go-pylog/logging"
-	"strconv"
-	"time"
 )
 
 type Ghostmanager struct {
@@ -72,9 +72,9 @@ func (g *Ghostmanager) Start() {
 	log.Info("%s closing", TAG)
 }
 
-func (g *Ghostmanager) saveReleases(releases []Release) {
+func (g *Ghostmanager) saveReleases(releases []data.Release) {
 	for _, rel := range releases {
-		err := g.DB.Insert(&town.Release{Name: rel.Name, Checksum: rel.Checksum, Rating: rel.Rating, Hits: rel.Hits, Time: rel.Time, Url: rel.Url, Tag: rel.Tag})
+		err := g.DB.Insert(&data.Release{Name: rel.Name, Checksum: rel.Checksum, Rating: rel.Rating, Hits: rel.Hits, Time: rel.Time, Url: rel.Url, Tag: rel.Tag})
 		if err != nil {
 			switch err.(type) {
 			case *sqlite3.Error:

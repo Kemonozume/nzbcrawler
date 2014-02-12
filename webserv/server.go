@@ -8,9 +8,10 @@ import (
 	"os"
 	"strconv"
 
+	"./../data"
 	"./../mydb"
-	"./../town"
 	"github.com/codegangsta/martini"
+	"github.com/codegangsta/martini-contrib/gzip"
 	"github.com/codegangsta/martini-contrib/sessions"
 	"github.com/coopernurse/gorp"
 	log "github.com/dvirsky/go-pylog/logging"
@@ -65,7 +66,7 @@ func (s *Server) Init() {
 	i404, _ = ioutil.ReadFile("templates/static/images/404.jpg")
 
 	m := martini.New()
-
+	m.Use(gzip.All())
 	m.Map(s)
 
 	m.Use(martini.Recovery())
@@ -80,15 +81,12 @@ func (s *Server) Init() {
 	r.Get("/db/event/:checksum/link", Auth, LinkFollow)
 	r.Get("/db/event/:checksum/image", Auth, ServeImage)
 	r.Get("/db/event/:checksum/score/:score", Auth, LinkFollow)
-	r.Get("/log", Auth, func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "templates/log.html")
-	})
-	r.Get("/log/cache", Auth, func() string {
+	r.Get("/db/log/cache", Auth, func() string {
 		return fmt.Sprintf("{ \"count\": %v, \"size\": %v }", cache.GetSize(), cache.GetSizeInMb())
 	})
-	r.Get("/log/:offset/", Auth, GetLogs)
-	r.Get("/log/:offset/:level", Auth, GetLogsWithLevel)
-	r.Post("/log/clearlogs", Auth, func(server *Server) string {
+	r.Get("/db/log/:offset/", Auth, GetLogs)
+	r.Get("/db/log/:offset/:level", Auth, GetLogsWithLevel)
+	r.Post("/db/log/clearlogs", Auth, func(server *Server) string {
 		server.LogDB.Exec("drop table log")
 		server.LogDB.AddTableWithName(mydb.Log{}, "log").SetKeys(true, "Uid")
 		server.LogDB.CreateTablesIfNotExists()
@@ -137,7 +135,7 @@ func GetReleaseWithTagAndName(server *Server, parms martini.Params) string {
 		command += "AND name LIKE '%" + name + "%' ORDER BY time DESC LIMIT 200 OFFSET " + offset
 	}
 
-	var b []town.Release
+	var b []data.Release
 
 	if command != "" {
 		_, err := server.RelDB.Select(&b, command)
@@ -188,6 +186,7 @@ func ServeImage(w http.ResponseWriter, r *http.Request, server *Server, parms ma
 		exist, _ = existsAsFile(filename)
 	}
 	w.Header().Add("Cache-Control", "max-age=1296000")
+	w.Header().Add("Content-Type", "image/jpg")
 	if !exist {
 		w.Write(i404)
 	}
