@@ -190,7 +190,7 @@ func (t *Townparser) ParseReleases(flush bool) error {
 								text = strings.Join(strings.Split(text, "/"), ",")
 							}
 							text = strings.ToLower(text)
-							rel.AddTag(text)
+							rel.AddTag(text, &rel)
 						case 2:
 							rel.Name = nodes2.Text()
 							rel.Url = nodes2.Attr("href")
@@ -228,65 +228,65 @@ func (t *Townparser) checkQual(r *data.Release) {
 		return
 	}
 	if strings.Contains(r.Name, "1080") {
-		r.AddTag("1080")
-		r.AddTag("hd")
+		r.AddTag("1080", r)
+		r.AddTag("hd", r)
 	} else if strings.Contains(r.Name, "720") {
-		r.AddTag("720")
-		r.AddTag("hd")
+		r.AddTag("720", r)
+		r.AddTag("hd", r)
 	} else if strings.Contains(r.Name, "untouched") {
-		r.AddTag("untouched")
+		r.AddTag("untouched", r)
 	} else if strings.Contains(r.Name, "3d") {
-		r.AddTag("3d")
+		r.AddTag("3d", r)
 	} else if !strings.Contains(r.Url, "720") && !strings.Contains(r.Url, "1080") && !strings.Contains(r.Url, "untouched") && !strings.Contains(r.Url, "3d") {
-		r.AddTag("sd")
+		r.AddTag("sd", r)
 	} else {
-		r.AddTag("sd")
+		r.AddTag("sd", r)
 	}
 }
 
 func (t *Townparser) checkCat(r *data.Release, subforum string) {
 	switch subforum {
 	case "cine-xvid-mvcd-svcd", "cine-dvd", "cine-hd-blu-ray":
-		r.AddTag("cinema")
+		r.AddTag("cinema", r)
 	case "international-cine-corner":
-		r.AddTag("cinema")
-		r.AddTag("eng")
+		r.AddTag("cinema", r)
+		r.AddTag("eng", r)
 	case "720p-movies", "1080p-movies", "untouched", "doku-sport-musik", "3d-formate", "xvid", "dvd", "doku-xvid", "doku-dvd-hd":
-		r.AddTag("movies")
+		r.AddTag("movies", r)
 	case "720p-corner", "1080p-corner", "dvd-movies", "xvid-movies":
-		r.AddTag("movies")
-		r.AddTag("eng")
+		r.AddTag("movies", r)
+		r.AddTag("eng", r)
 	case "kiddy-zone", "kids-serie", "aktuelle-serien-hd-xvid", "komplette-staffeln":
-		r.AddTag("series")
+		r.AddTag("series", r)
 	case "tv-series-complete", "tv-series":
-		r.AddTag("series")
-		r.AddTag("eng")
+		r.AddTag("series", r)
+		r.AddTag("eng", r)
 	case "anime-mangas":
-		r.AddTag("series")
-		r.AddTag("anime")
+		r.AddTag("series", r)
+		r.AddTag("anime", r)
 	case "xxx-0-day-englisch", "xxx-dvd-hd", "xxx-france-italia", "xxx-pix-siterips-clips", "xxx-englisch", "xxx-german", "xxx-other", "big-packs-over-5gb":
-		r.AddTag("xxx")
+		r.AddTag("xxx", r)
 	case "xxx-asian":
-		r.AddTag("xxx")
-		r.AddTag("asian")
+		r.AddTag("xxx", r)
+		r.AddTag("asian", r)
 	case "spiele", "sonstiges":
-		r.AddTag("games")
-		r.AddTag("pc")
+		r.AddTag("games", r)
+		r.AddTag("pc", r)
 	case "xbox", "xbox360", "xbox360-sonstiges":
-		r.AddTag("games")
-		r.AddTag("xbox")
+		r.AddTag("games", r)
+		r.AddTag("xbox", r)
 	case "playstation-1", "playstation-2", "playstation-3", "playstation-portable", "ps3-sonstiges":
-		r.AddTag("games")
-		r.AddTag("playstation")
-		r.AddTag("ps")
+		r.AddTag("games", r)
+		r.AddTag("playstation", r)
+		r.AddTag("ps", r)
 	case "nds-gba", "wii-gamecube", "wii-sonstiges":
-		r.AddTag("games")
-		r.AddTag("wii")
+		r.AddTag("games", r)
+		r.AddTag("wii", r)
 	case "alben", "discography", "hoerbuecher-allgemein", "klassiker-oldies", "charts", "musik-dvd-xvid", "musik-others":
-		r.AddTag("music")
+		r.AddTag("music", r)
 	case "lossless":
-		r.AddTag("music")
-		r.AddTag("lossless")
+		r.AddTag("music", r)
+		r.AddTag("lossless", r)
 	default:
 		r.Checksum = ""
 

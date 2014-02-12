@@ -11,10 +11,10 @@ type Release struct {
 	Image    string `db:"-"`
 }
 
-func (r Release) AddTag(tag string) {
-	if r.Tag == "" {
-		r.Tag = tag
+func (r Release) AddTag(tag string, pr *Release) {
+	if pr.Tag == "" {
+		pr.Tag = tag
 	} else {
-		r.Tag += "," + tag
+		pr.Tag += "," + tag
 	}
 }

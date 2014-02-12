@@ -55,7 +55,7 @@ func (g *Ghostparser) getUrlAndTagAndName(rel *data.Release, sc *goquery.Selecti
 		case 1:
 			if attr, exist := sd.Attr("href"); exist {
 				if rel.Name != "" {
-					rel.AddTag(sd.Text())
+					rel.AddTag(sd.Text(), rel)
 					i := g.getBoardId(attr)
 					if i != -1 {
 						g.checkCat(rel, i)
@@ -247,121 +247,121 @@ func (g *Ghostparser) checkQual(r *data.Release) {
 		return
 	}
 	if strings.Contains(r.Name, "1080") {
-		r.AddTag("1080")
+		r.AddTag("1080", r)
 	} else if strings.Contains(r.Name, "720") {
-		r.AddTag("720")
+		r.AddTag("720", r)
 	} else if strings.Contains(r.Name, "untouched") {
-		r.AddTag("untouched")
+		r.AddTag("untouched", r)
 	} else if strings.Contains(r.Name, "3d") {
-		r.AddTag("3d")
+		r.AddTag("3d", r)
 	} else if !strings.Contains(r.Url, "720") && !strings.Contains(r.Url, "1080") && !strings.Contains(r.Url, "untouched") && !strings.Contains(r.Url, "3d") {
-		r.AddTag("sd")
+		r.AddTag("sd", r)
 	} else {
-		r.AddTag("sd")
+		r.AddTag("sd", r)
 	}
 }
 
 func (g *Ghostparser) checkCat(r *data.Release, boardid int) {
 	switch boardid {
 	case 26:
-		r.AddTag("cinema")
+		r.AddTag("cinema", r)
 	case 176:
-		r.AddTag("cinema")
-		r.AddTag("hd")
+		r.AddTag("cinema", r)
+		r.AddTag("hd", r)
 	case 28, 29, 59:
-		r.AddTag("cinema")
-		r.AddTag("sd")
+		r.AddTag("cinema", r)
+		r.AddTag("sd", r)
 	case 101:
-		r.AddTag("movies")
+		r.AddTag("movies", r)
 	case 124, 125, 127, 1, 4, 6, 7:
-		r.AddTag("movies")
-		r.AddTag("sd")
+		r.AddTag("movies", r)
+		r.AddTag("sd", r)
 	case 157, 158, 159, 211, 212, 160, 119, 120, 121, 213, 214, 122, 150, 202, 203, 141:
-		r.AddTag("movies")
-		r.AddTag("hd")
+		r.AddTag("movies", r)
+		r.AddTag("hd", r)
 	case 143, 144, 145, 146:
-		r.AddTag("movies")
-		r.AddTag("hd")
-		r.AddTag("eng")
+		r.AddTag("movies", r)
+		r.AddTag("hd", r)
+		r.AddTag("eng", r)
 	case 53:
-		r.AddTag("series")
+		r.AddTag("series", r)
 	case 77, 65, 215:
-		r.AddTag("series")
-		r.AddTag("sd")
+		r.AddTag("series", r)
+		r.AddTag("sd", r)
 	case 216, 217:
-		r.AddTag("series")
-		r.AddTag("hd")
+		r.AddTag("series", r)
+		r.AddTag("hd", r)
 	case 175, 208:
-		r.AddTag("series")
-		r.AddTag("hd")
-		r.AddTag("eng")
+		r.AddTag("series", r)
+		r.AddTag("hd", r)
+		r.AddTag("eng", r)
 	case 225:
-		r.AddTag("series")
-		r.AddTag("sd")
-		r.AddTag("eng")
+		r.AddTag("series", r)
+		r.AddTag("sd", r)
+		r.AddTag("eng", r)
 	case 12, 21, 19:
-		r.AddTag("music")
+		r.AddTag("music", r)
 	case 166:
-		r.AddTag("music")
-		r.AddTag("rock")
+		r.AddTag("music", r)
+		r.AddTag("rock", r)
 	case 167:
-		r.AddTag("music")
-		r.AddTag("pop")
+		r.AddTag("music", r)
+		r.AddTag("pop", r)
 	case 168:
-		r.AddTag("music")
-		r.AddTag("jazz")
-		r.AddTag("blues")
-		r.AddTag("souls")
-		r.AddTag("country")
-		r.AddTag("reggae")
+		r.AddTag("music", r)
+		r.AddTag("jazz", r)
+		r.AddTag("blues", r)
+		r.AddTag("souls", r)
+		r.AddTag("country", r)
+		r.AddTag("reggae", r)
 	case 169:
-		r.AddTag("music")
-		r.AddTag("hip-hop")
+		r.AddTag("music", r)
+		r.AddTag("hip-hop", r)
 	case 170:
-		r.AddTag("music")
-		r.AddTag("electronic")
+		r.AddTag("music", r)
+		r.AddTag("electronic", r)
 	case 171:
-		r.AddTag("music")
-		r.AddTag("schlager")
-		r.AddTag("volksmusik")
+		r.AddTag("music", r)
+		r.AddTag("schlager", r)
+		r.AddTag("volksmusik", r)
 	case 172:
-		r.AddTag("music")
-		r.AddTag("oldies")
+		r.AddTag("music", r)
+		r.AddTag("oldies", r)
 	case 173:
-		r.AddTag("music")
-		r.AddTag("metal")
+		r.AddTag("music", r)
+		r.AddTag("metal", r)
 	case 174:
-		r.AddTag("music")
-		r.AddTag("soundtrack")
+		r.AddTag("music", r)
+		r.AddTag("soundtrack", r)
 	case 48:
-		r.AddTag("music")
-		r.AddTag("hörbuch")
+		r.AddTag("music", r)
+		r.AddTag("hörbuch", r)
 	case 147:
-		r.AddTag("music")
-		r.AddTag("classic")
+		r.AddTag("music", r)
+		r.AddTag("classic", r)
 	case 177:
-		r.AddTag("music")
-		r.AddTag("discography")
+		r.AddTag("music", r)
+		r.AddTag("discography", r)
 	case 51:
-		r.AddTag("games")
-		r.AddTag("pc")
+		r.AddTag("games", r)
+		r.AddTag("pc", r)
 	case 32:
-		r.AddTag("games")
-		r.AddTag("xbox360")
+		r.AddTag("games", r)
+		r.AddTag("xbox360", r)
 	case 34:
-		r.AddTag("games")
-		r.AddTag("ps")
+		r.AddTag("games", r)
+		r.AddTag("ps", r)
 	case 37:
-		r.AddTag("games")
-		r.AddTag("wii")
+		r.AddTag("games", r)
+		r.AddTag("wii", r)
 	case 74:
-		r.AddTag("xxx")
+		r.AddTag("xxx", r)
 	case 85:
-		r.AddTag("xxx")
-		r.AddTag("hd")
+		r.AddTag("xxx", r)
+		r.AddTag("hd", r)
 	case 70, 71, 133:
-		r.AddTag("xxx")
-		r.AddTag("sd")
+		r.AddTag("xxx", r)
+		r.AddTag("sd", r)
 	default:
 		r.Name = ""
 		r.Checksum = ""
