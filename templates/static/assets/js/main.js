@@ -32,6 +32,21 @@ route.addRoute("/", function() {
     app.reset();
     app.addUI();
 });
+route.addRoute("/search", function() {
+     app.reset();
+    var bla = document.getElementById("s-name").value;
+    var bla2 = document.getElementById("s-genre").value;
+    if(bla == "") {
+        bla = "none";
+    }
+    if(bla2 == "") {
+        bla2 = "none";
+    }
+
+    app.genre = bla2;
+    app.name = bla;
+    app.addUI();
+});
 route.addRoute("/stats", function() {
     log.reset();
     log.addUI();
@@ -99,21 +114,19 @@ route.create();
 
 
 $('#s-button').bind("click", function() {
-    parent.location.hash = "/search";
-    app.reset();
-    var bla = document.getElementById("s-name").value;
-    var bla2 = document.getElementById("s-genre").value;
-    if(bla == "") {
-        bla = "none";
-    }
-    if(bla2 == "") {
-        bla2 = "none";
-    }
-
-    app.genre = bla2;
-    app.name = bla;
-    app.addUI();
+    parent.location.hash = "/search/"+makeid();
 });
+
+function makeid(){
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for( var i=0; i < 5; i++ )
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return text;
+}
+
 
 
 function getMovieName(str) {

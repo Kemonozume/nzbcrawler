@@ -78,11 +78,8 @@ var AppObj = {
 	},
 
 	setTag: function(genre) {
-    	parent.location.hash = "/search";
-		this.reset();
-		this.genre = genre;
 		document.getElementById("s-genre").value = genre;
-		this.addUI();
+    	parent.location.hash = "/search/"+makeid();
 	}
 
 

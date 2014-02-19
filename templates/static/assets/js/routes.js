@@ -14,9 +14,8 @@ var RouteObj = {
 	    var name = "";
 		if(bl2.length == 0) {
 			parent.location.hash = "/";
-		}else if (bl2.length == 1) {
+		}else if (bl2.length == 1 || bl2[0] == "/search") {
 			name = bl2[0];
-			
 		}else {
 			name = bl2.join("");
 		}
