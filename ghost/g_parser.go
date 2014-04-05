@@ -1,6 +1,7 @@
 package ghost
 
 import (
+	"./../data"
 	"crypto/sha1"
 	"encoding/hex"
 	"image/jpeg"
@@ -10,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"./../data"
 
 	"code.google.com/p/go.net/html"
 	"github.com/PuerkitoBio/goquery"
@@ -123,7 +123,7 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 				log.Error("%s %s", TAG, err.Error())
 				return
 			}
-			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
+			m := resize.Resize(300, 0, img, resize.Lanczos3)
 			out, err := os.Create("templates/static/images/" + name + ".jpg")
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
@@ -139,7 +139,7 @@ func (g *Ghostparser) downloadImage(url string, name string) {
 				log.Error("%s %s", TAG, err.Error())
 				return
 			}
-			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
+			m := resize.Resize(300, 0, img, resize.Lanczos3)
 			out, err := os.Create("templates/static/images/" + name + ".png")
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
@@ -192,6 +192,12 @@ func (g *Ghostparser) encodeName(name string) string {
 
 //parse the http resp from Townclient
 func (g *Ghostparser) ParseReleases() error {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Info("%s recovered from panic", TAG)
+			return
+		}
+	}()
 	log.Info("%s parsing %v", TAG, g.Url)
 
 	resp, err := g.Gc.Get(g.Url)

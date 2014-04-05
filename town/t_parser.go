@@ -1,6 +1,7 @@
 package town
 
 import (
+	"./../data"
 	"crypto/sha1"
 	"encoding/hex"
 	"image/jpeg"
@@ -10,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"./../data"
 
 	"github.com/dustin/goquery"
 	log "github.com/dvirsky/go-pylog/logging"
@@ -108,7 +108,7 @@ func (t *Townparser) downloadImage(url string, name string) error {
 		defer resp.Body.Close()
 		if strings.Contains(url, "jpg") || strings.Contains(url, "jpeg") {
 			img, _ := jpeg.Decode(resp.Body)
-			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
+			m := resize.Resize(300, 0, img, resize.Lanczos3)
 			out, err := os.Create("templates/static/images/" + name + ".jpg")
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
@@ -123,7 +123,7 @@ func (t *Townparser) downloadImage(url string, name string) error {
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
 			}
-			m := resize.Resize(300, 0, img, resize.Lanczos2Lut)
+			m := resize.Resize(300, 0, img, resize.Lanczos3)
 			out, err := os.Create("templates/static/images/" + name + ".png")
 			if err != nil {
 				log.Error("%s %s", TAG, err.Error())
@@ -147,6 +147,12 @@ func (t *Townparser) encodeName(name string) string {
 
 //parse the http resp from Townclient
 func (t *Townparser) ParseReleases(flush bool) error {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Info("%s recovered from panic", TAG)
+			return
+		}
+	}()
 	log.Info("%s parsing %v", TAG, t.Url)
 	if flush {
 		t.Site = nil
