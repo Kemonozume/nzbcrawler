@@ -5,6 +5,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"net/http"
+	"unsafe"
 
 	"runtime"
 	"runtime/debug"
@@ -14,6 +15,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+const cacheItemSize = int(unsafe.Sizeof(CacheItem{}))
+const cacheSize = int(unsafe.Sizeof(Cache{}))
 
 type Cache struct {
 	cache      map[string]*CacheItem
@@ -32,7 +36,7 @@ type CacheItem struct {
 }
 
 func (c *CacheItem) GetSize() int {
-	return len(c.Data) + 4 + 16
+	return cacheItemSize + len(c.Data) + int(unsafe.Sizeof(c.Data)) + int(unsafe.Sizeof(c.AccessCount)) + int(unsafe.Sizeof(c.Added))
 }
 
 func (c *CacheItem) SetNil() {
@@ -46,6 +50,7 @@ func NewCache(cachesize int, sizefree int, autodelete bool) *Cache {
 	c.autodelete = autodelete
 	c.cache = make(map[string]*CacheItem)
 	c.isRunning = false
+	c.size = cacheSize
 	return c
 }
 
