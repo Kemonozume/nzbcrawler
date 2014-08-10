@@ -30,6 +30,7 @@ type Server struct {
 	DB     *gorm.DB
 	Config *config.Config
 	Store  *sessions.CookieStore
+	Cache  *Cache
 }
 
 const (
@@ -56,6 +57,8 @@ func (s *Server) Init() {
 		MaxAge: 86400 * 7,
 	}
 
+	s.Cache = NewCache(s.Config.CacheSize*1024*1024, s.Config.CacheFree*1024*1024, true)
+
 	i404, _ = ioutil.ReadFile("templates/static/assets/img/404.jpg")
 
 	goji.Use(gzip.GzipHandler)
@@ -79,6 +82,7 @@ func (s *Server) Init() {
 	goji.Get("/db/event/:id/", GetRelease)
 	goji.Get("/db/event/:id/link", GetReleaseLink)
 	goji.Get("/db/event/:id/nzb", GetReleaseNzb)
+	goji.Get("/db/event/:id/image", GetReleaseImage)
 	goji.Get("/db/event/:id/thank", ThankRelease)
 	goji.Get("/db/events/", GetReleases)
 	goji.Get("/db/tags/", GetTags)
@@ -150,6 +154,9 @@ func HandleRecovery() {
 }
 
 func LogTime(url string, start time.Time) {
+	if strings.Contains(url, "/image") {
+		return
+	}
 	log.Infof("%s GET %s in %s", TAG, url, time.Since(start))
 }
 
@@ -200,6 +207,7 @@ func (s *Server) ServerMiddleWare(c *web.C, h http.Handler) http.Handler {
 		c.Env["config"] = s.Config
 		c.Env["releases"] = Releases{}
 		c.Env["logs"] = Logs{}
+		c.Env["cache"] = s.Cache
 		h.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
@@ -250,6 +258,39 @@ func GetReleaseLink(c web.C, w http.ResponseWriter, r *http.Request) {
 	HandleError(w, r, err, "link not found", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
 
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+func GetReleaseImage(c web.C, w http.ResponseWriter, r *http.Request) {
+	db := c.Env["db"].(*gorm.DB)
+	cache := c.Env["cache"].(*Cache)
+
+	idstr := c.URLParams["id"]
+
+	id, err := strconv.Atoi(idstr)
+	HandleError(w, r, err, "id parsing failed", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
+
+	rel := data.Release{Id: int64(id)}
+	err = db.Model(&rel).First(&rel).Error
+	HandleError(w, r, err, "release not found", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
+
+	if rel.Image == "" {
+		w.Write(i404)
+	} else {
+		file := cache.Get(rel.Image)
+		if file == nil {
+			ok := cache.Add(rel.Image)
+			if ok {
+				file := cache.Get(rel.Image)
+				w.Write(file)
+			} else {
+				w.Write(i404)
+			}
+
+		} else {
+			w.Write(file)
+		}
+	}
+
 }
 
 func GetReleaseNzb(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -355,10 +396,13 @@ type statwrap struct {
 	MemoryAcq    int
 	MemoryUsed   int
 	GoRoutines   int
+	CacheMB      int
+	CacheCount   int
 }
 
 func GetStats(c web.C, w http.ResponseWriter, r *http.Request) {
 	db := c.Env["db"].(*gorm.DB)
+	cache := c.Env["cache"].(*Cache)
 
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
@@ -370,6 +414,9 @@ func GetStats(c web.C, w http.ResponseWriter, r *http.Request) {
 	stats.GoRoutines = runtime.NumGoroutine()
 	stats.MemoryAcq = int(acq)
 	stats.MemoryUsed = int(used)
+
+	stats.CacheMB = cache.GetSizeInMb()
+	stats.CacheCount = cache.GetSize()
 
 	err := db.Order("weight desc").Limit(10).Find(&stats.Ta).Error
 	HandleError(w, r, err, "database request failed")

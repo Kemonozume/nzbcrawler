@@ -77,7 +77,7 @@
 				<%  if (release.image == "" || release.image == undefined) { %>
 					<img title="<%= release.name %>" src="/assets/404.jpg">
 				<% }else {%>
-					<img title="<%= release.name %>" src="<%= release.image %>" onerror="this.onerror=null;this.src='assets/404.jpg'">
+					<img title="<%= release.name %>" src="/db/event/<%= release.id %>/image" onerror="this.onerror=null;this.src='assets/404.jpg'">
 				<% }%>
 				</div>
 			</td>

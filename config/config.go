@@ -19,6 +19,9 @@ type Config struct {
 	DBUser     string `toml:"dbuser"`
 	DBPassword string `toml:"dbpassword"`
 	DBName     string `toml:"dbdatabase"`
+
+	CacheSize int `toml:"cachesize"`
+	CacheFree int `toml:"cachefree"`
 }
 
 func Load(file string) (c *Config, err error) {
