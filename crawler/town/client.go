@@ -2,37 +2,61 @@ package town
 
 import (
 	"errors"
-	goquery "github.com/PuerkitoBio/goquery"
-	log "github.com/dvirsky/go-pylog/logging"
-	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
-	"strconv"
-	"strings"
-	"time"
-)
 
-type Townclient struct {
-	User, Password string
-	cookies        []*http.Cookie
-}
+	"strings"
+
+	goquery "github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
+)
 
 const (
-	DUMP  = 0
-	DAILY = "http://www.town.ag/v2/search.php?do=getnew"
-	LOGIN = "http://www.town.ag/v2/login.php?do=login"
-	ROOT  = "http://www.town.ag/v2/"
+	DAILY  = "http://www.town.ag/v2/search.php?do=getnew"
+	LOGIN  = "http://www.town.ag/v2/login.php?do=login"
+	ROOT   = "http://www.town.ag/v2/"
+	THANKS = "http://www.town.ag/v2/ajax.php"
 )
 
-func (t *Townclient) getSValue() (sValue string) {
-	log.Info("%s getting sValue for town login", TAG)
+func Redirect(req *http.Request, via []*http.Request) error {
+	return errors.New("bla")
+}
+
+type TownClient struct {
+	User, Password string
+	cookies        []*http.Cookie
+	logged_in      bool
+	dump           bool
+}
+
+func NewClient() (tc *TownClient) {
+	tc = &TownClient{}
+	tc.logged_in = false
+	tc.dump = false
+	return tc
+}
+
+func (t *TownClient) SetAuth(user, password string) {
+	t.User = user
+	t.Password = password
+}
+
+func (t *TownClient) SetDump(val bool) {
+	t.dump = val
+}
+
+func (t TownClient) IsLoggedIn() bool {
+	return t.logged_in
+}
+
+func (t *TownClient) getSValue() (sValue string) {
+	log.Infof("%s getting sValue for town login", TAG)
 	sValue = ""
 	var doc *goquery.Document
 	var e error
-	log.Info("%s[GET] url: %v", TAG, ROOT)
+	log.Infof("%s GET %v", TAG, ROOT)
 	if doc, e = goquery.NewDocument(ROOT); e != nil {
-		log.Error("%s %s", TAG, e.Error())
+		log.Errorf("%s %s", TAG, e.Error())
 		return
 	}
 
@@ -48,13 +72,13 @@ func (t *Townclient) getSValue() (sValue string) {
 		}
 
 	})
-	log.Info("%s sValue: %v", TAG, sValue)
+	log.Infof("%s sValue: %v", TAG, sValue)
 	return sValue
 }
 
 // Logs into town.ag and returns the response cookies
-func (t *Townclient) Login() error {
-	log.Info("%s login process started", TAG)
+func (t *TownClient) Login() error {
+	log.Infof("%s login process started", TAG)
 
 	sValue := t.getSValue()
 
@@ -79,10 +103,8 @@ func (t *Townclient) Login() error {
 		return err
 	}
 
-	log.Info("%s[POST] url: %v", TAG, LOGIN)
+	log.Infof("%s POST %v", TAG, LOGIN)
 	t.addHeader(req)
-
-	t.dumpRequest(req, "town_login_req")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -91,24 +113,50 @@ func (t *Townclient) Login() error {
 
 	defer resp.Body.Close()
 
-	t.dumpResponse(resp, "town_login_resp")
 	t.cookies = resp.Cookies()
+
+	t.logged_in = true
 	return nil
 }
 
-func Redirect(req *http.Request, via []*http.Request) error {
-	return errors.New("bla")
+//http get using the given sUrl
+func (t *TownClient) Get(sUrl string) (*http.Response, error) {
+	log.Infof("%s GET %v", TAG, sUrl)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", sUrl, nil)
+	if err != nil {
+		log.Errorf("%s couldn't create Request to: %v", TAG, sUrl)
+		return nil, err
+	}
+
+	t.addHeader(req)
+
+	if t.cookies != nil {
+		for _, cookie := range t.cookies {
+			req.AddCookie(cookie)
+		}
+	}
+
+	//connect to sUrl
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Errorf("%s couldn't connect to: %v", TAG, sUrl)
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 //return the Daily url or "" if something went wrong
-func (t *Townclient) GetDailyUrl() (string, error) {
-	log.Info("%s getting Daily Url for town", TAG)
+func (t *TownClient) GetDailyUrl() (string, error) {
+	log.Infof("%s getting Daily Url for town", TAG)
 	client := &http.Client{
 		CheckRedirect: Redirect,
 	}
 	req, err := http.NewRequest("GET", DAILY, nil)
 	if err != nil {
-		log.Error("%s %s", TAG, err.Error())
+		log.Errorf("%s %s", TAG, err.Error())
 		return "", err
 	}
 
@@ -126,77 +174,48 @@ func (t *Townclient) GetDailyUrl() (string, error) {
 	}
 	defer resp.Body.Close()
 
-	time1 := time.Now()
-	t.dumpResponse(resp, "daily"+strconv.Itoa(time1.Nanosecond()))
-
-	url, err := resp.Location()
-	if err != nil {
-		return "", err
+	lv := resp.Header.Get("Location")
+	if lv == "" {
+		return "", errors.New("no Location header|most likely town annoucment")
 	}
 
-	log.Info("%s daily url: %v", TAG, url.String())
-	return url.String(), nil
-
+	return lv, nil
 }
 
-//http get to the given ressource
-func (t *Townclient) Get(sUrl string) (*http.Response, error) {
-	if strings.Contains(sUrl, "jpg") || strings.Contains(sUrl, "png") || strings.Contains(sUrl, "gif") || strings.Contains(sUrl, "jpeg") {
-	} else {
-		log.Info("%s[GET] url: %v", TAG, sUrl)
-	}
+//execute ajax thank request for a post
+func (t *TownClient) ThankPost(postid string, token string) (err error) {
+	log.Infof("%s thanking post %s", TAG, postid)
+
+	param := url.Values{}
+	param.Set("do", "thanks")
+	param.Add("postid", postid)
+	param.Add("securitytoken", token)
+	param.Add("s", "")
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", sUrl, nil)
+	req, err := http.NewRequest("POST", THANKS, strings.NewReader(param.Encode()))
 	if err != nil {
-		log.Error("%s couldn't create Request to: %v", TAG, sUrl)
-		return nil, err
+		return
 	}
 
+	log.Infof("%s POST url: %v", TAG, THANKS)
 	t.addHeader(req)
-
 	if t.cookies != nil {
 		for _, cookie := range t.cookies {
 			req.AddCookie(cookie)
 		}
 	}
 
-	time1 := time.Now()
-	t.dumpRequest(req, "town_get_req_"+strconv.Itoa(time1.Nanosecond()))
-
-	//connect to sUrl
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error("%s couldn't connect to: %v", TAG, sUrl)
-		return nil, err
+		return
 	}
 
-	t.dumpResponse(resp, "town_get_resp_"+strconv.Itoa(time1.Nanosecond()))
-
-	return resp, nil
+	defer resp.Body.Close()
+	return
 }
 
-func (t *Townclient) dumpRequest(req *http.Request, name string) {
-	if DUMP == 1 {
-		dump1, err := httputil.DumpRequestOut(req, true)
-		if err != nil {
-			log.Critical("dump of %v request failed", name)
-		}
-		ioutil.WriteFile(name, dump1, 0777)
-	}
-}
-
-func (t *Townclient) dumpResponse(resp *http.Response, name string) {
-	if DUMP == 1 {
-		dump, err := httputil.DumpResponse(resp, true)
-		if err != nil {
-			log.Critical("log failed for get Request")
-		}
-		ioutil.WriteFile(name, dump, 0777)
-	}
-}
-
-func (t *Townclient) addHeader(req *http.Request) {
+func (t *TownClient) addHeader(req *http.Request) {
 	req.Header.Add("Host", "www.town.ag")
 	//req.Header.Add("Origin", "www.town.ag")
 	req.Header.Add("Referer", "http://www.town.ag/v2/")

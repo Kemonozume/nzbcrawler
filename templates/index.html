@@ -1,158 +1,143 @@
-	<!DOCTYPE html>
-	<html>
-	<head>
-		<title>main</title>
-		<link rel="stylesheet" type="text/css" href="assets/css/main.css" />
-		<link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css" />
-		<link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.min.css" />
-		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
-		<script type="application/octet-stream" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.map"></script>
-		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
-		<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js"></script>
-		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.min.js"></script>
-	</head>
-	<body>
-		<nav class="navbar navbar-inverse" role="navigation">
-			<div class="container-fluid">
-				<div class="navbar-header">
-					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
-						<span class="sr-only">Toggle navigation</span>
-						<span class="icon-bar"></span>
-						<span class="icon-bar"></span>
-						<span class="icon-bar"></span>
-					</button>
-					<a class="navbar-brand" href="#/">Nzbcrawler</a>
+<!DOCTYPE html>
+<html>
+<head>
+	<title>browse</title>
+	<link rel="icon" href="assets/img/icon.png" type="image/png" />
+	<link rel="stylesheet" type="text/css" href="assets/css/main.css" />
+	<link rel="stylesheet" type="text/css" href="assets/css/pure-min.css" />
+	<link rel='stylesheet' type="text/css" href='assets/css/nprogress.css'/>
+	<link href='http://fonts.googleapis.com/css?family=Ubuntu:300' rel='stylesheet' type='text/css'>
+	<script type="text/javascript" src="assets/js/underscore-min.js"></script>
+	<script type="text/javascript" src="assets/js/jquery-2.1.1.min.js"></script>
+	<script type="text/javascript" src='assets/js/nprogress.js'></script>
+</head>
+<body>
+<div class="pure-menu pure-menu-open pure-menu-horizontal">
+    <a href="#" class="pure-menu-heading">nzbcrawler</a>
+
+    <ul>
+        <li class="pure-menu-selected"><a href="#">browse</a></li>
+		<li><a href="/logs">logs</a></li>
+		<li><a href="/stats">stats</a></li>
+		<li><a href="#" onclick="toggleActionbar()" id="toggleaction">▼</a></li>
+    </ul>
+</div>
+
+<div id="ab">
+<div class="pure-g">
+    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="app.resetViewsOffset();app.addReleases()">search</button></div>
+    <div class="pure-u-1-4" id="abtags"></div>
+    <div class="pure-u-1-4"><input style="margin-top: 5px;" id="abtags_input" type="text"></div>
+    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="AddTag()">add tag</button><button class="button-ui pure-button" onclick="AddName()">add name</button></div>
+    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="app.reset();app.addReleases()">reset</button></div>
+    <div class="pure-u-1-4" id="abname"></div>
+    <div class="pure-u-1-4"></div>
+    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="toggleCloud()">tagcloud</button></div>
+</div>
+</div>
+
+
+<span id="navlinks">
+	<a href="#" onclick="scrollToTop()">▲</a>
+</span>
+
+<div id="cloud" >
+<div id="cloudlist" class="pure-g">
+
+</div>
+</div>
+
+<div id="releases">
+<table class="ctable">
+<thead>
+	<tr>
+		<th>img</th>
+		<th>infos</th>
+		<th>tags</th>
+		<th>links</th>
+	</tr>
+</thead>
+<tbody id="cont">
+</tbody>
+</table>
+</div>
+
+
+
+<script type="text/template" id="release-list-template">
+	<% _.each(releases, function(release) { %>
+		<% if (release.hits > 0) { %>
+			<tr class="release-hit">
+		<% }else { %>
+			<tr class="release">
+		<% } %>
+		
+			<td class="image">
+				<div class="crop-image" >
+				<%  if (release.image == "" || release.image == undefined) { %>
+					<img title="<%= release.name %>" src="/assets/404.jpg">
+				<% }else {%>
+					<img title="<%= release.name %>" src="<%= release.image %>" onerror="this.onerror=null;this.src='assets/404.jpg'">
+				<% }%>
 				</div>
-				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-					<ul class="nav navbar-nav">
-						<li  class="active"><a href="#/">browse</a></li>
-						<li class="dropdown">
-							<a class="dropdown-toggle" data-toggle="dropdown">mov <b class="caret"></b></a>
-							<ul class="dropdown-menu">
-								<li ><a href="#/movies">all</a></li>
-								<li ><a href="#/movies/hd">hd</a></li>
-								<li ><a href="#/movies/sd">sd</a></li>
-							</ul>
-						</li>
-						<li class="dropdown">
-							<a  class="dropdown-toggle" data-toggle="dropdown">cin <b class="caret"></b></a>
-							<ul class="dropdown-menu">
-								<li ><a href="#/cinema">all</a></li>
-								<li ><a href="#/cinema/hd">hd</a></li>
-								<li ><a href="#/cinema/sd">sd</a></li>
-							</ul>
-						</li>
-						<li class="dropdown">
-							<a  class="dropdown-toggle" data-toggle="dropdown">serie <b class="caret"></b></a>
-							<ul class="dropdown-menu">
-								<li ><a href="#/serie">all</a></li>
-								<li ><a href="#/serie/hd">hd</a></li>
-								<li ><a href="#/serie/sd">sd</a></li>
-							</ul>
-						</li>
-						<li ><a href="#/pc">pc</a></li>
-					</ul>
-					<form class="navbar-form navbar-left" role="search">
-						<div class="form-group">
-							<input id="s-name" type="text" class="form-control input-sm" placeholder="name">
-							<input id="s-genre" type="text" class="form-control input-sm" placeholder="genre">
-						</div>
-						<button id="s-button" class="btn btn-default">suchen</button>
-					</form>
-					<ul class="nav navbar-nav navbar-right">
-						<li class="dropdown">
-							<a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-cog"></span><b class="caret"></b></a>
-							<ul class="dropdown-menu">
-								<li ><a href="#/logs">logs</a></li>
-								<li ><a href="#/stats">stats</a></li>
-							</ul>
-						</li>
-					</ul>
-				</div>
-			</div>
-		</nav>
-		<div id="root" class="container-fluid">
-			<div id="tcont"></div>
-			<div id="lcont"></div>
-		</div>
+			</td>
+		<td class="infos">
+			<% var name = getMovieName(release.name) %>
+			<% if (name != null) { %>
+				<span class="title"><%= name %></span>
+			<% }else { %>
+				<span class="title"><%= release.name %></span>
+			<% } %>
+			</br></br>Hits: <%= release.hits %>
+			<% if ( release.password != "" && release.password != undefined ){ %> 
+				</br></br><span class="password">Password: <%= release.password %></span>
+			<% } %>
+		</td>
+		<td class="tags_cont">
+			<ul class="tags">
+			<% if (release.tags) { %>
+			<% for (var i = release.tags.length - 1; i >= 0; i--) { %>
+				<li>
+					<a class="link-tags" onclick="app.addTag('<%= release.tags[i].value %>')"><%= release.tags[i].value %></a>
+				</li>
+			<% } %>
+			<% } %>
+		</td>
+		<td class="tags_cont">
+			<ul class="links">
+				<li>
+					<a target="_blank" href="/db/event/<%= release.id %>/link">link</a>
+				</li>
+				<li>
+					<a target="_blank" href="<%= release.url %>">notrack</a>
+				</li>
+				<li>
+				<% if (release.url.indexOf("town") != -1 ) { %>
+					<% if ( release.nzb_link != "" && release.nzb_link != undefined ){ %> 
+						<a target="_blank" href="/db/event/<%= release.id %>/nzb">nzb download</a>
+					<% }else{ %>
+						<span onclick="getNZB(this, <%= release.id %>)">get nzb</span>
+					<% } %>
+				<% } %>
+				</li>
+			</ul>
+		</td>
+		</tr>
+	<% }); %>
+</script>
+<script type="text/template" id="tags-list-template">
+	<% counter = tags.length/100 %>
+	<% step = counter/2 %>
+	<% _.each(tags, function(tag) { %>
+		<% var style = "font-size: "; %>
+		<% style += (240-counter)+"%;" %>
+		<% style += ";" %>
+		<% if(counter < 130) { counter+=step } %>
 
-		<script type="text/template" id="release-list-template">
-			<% _.each(releases, function(release) { %>
-				<div class="release">
-					<div class="crop-image" onclick="app.showInfo(this);">
-						<%  if (release.hits > 0) { %>
-							<img class="ribbon" src="assets/img/ribbon1.png">
-							<% }%>
-							<img title="<%= release.name %>" src="/db/event/<%= release.checksum %>/image" onerror="this.onerror=null;this.src='images/404.jpg'">
-						</div>
-						<div class="info">
-							<% var name = getMovieName(release.name) %>
-							<% if (name != null) { %>
-								<p class="name"><%= name %></p>
-							<% }else { %>
-								<p class="name"><%= release.name %></p>
-							<% } %>
-							<p class="hits">Hits: <%= release.hits %></p>
-							<% var tags = release.tag.split(","); %>
-							<% var incr = 255/tags.length; %>
-							<% incr = ~~incr %>
-							<% var val = 0; %>
-							<% for (var i = tags.length - 1; i >= 0; i--) { %>
-								<% if(tags[i].length < 16) { %>
-									<a class="link-tags" style="background-color: rgb(102,<%=val%>,0);" onclick="app.setTag('<%= tags[i] %>')"><%= tags[i] %></a>
-									<% val += incr; %>
-								<% } %>
-							<% } %>
-							<br><br>
-							<a class="link-track" target="_blank" href="/db/event/<%= release.checksum %>/link">link</a><a class="link-notrack" target="_blank" href="<%= release.url %>">notrack</a>
-							<%  if (release.tag.indexOf("movie") !== -1  ||  release.tag.indexOf("cine") !== -1) { %>
-								<a class="link-imdb" target="_blank" href="http://www.imdb.com/find?s=tt&q=<%= name %>">imdb</a>
-							<% }%>
-							<br>
-							<br>
-						</div>
-					</div>
-		<% }); %>
-	</script>
-
-	<script type="text/template" id="log-info-template">
-		<div class="btn-toolbar" role="toolbar">
-			<div class="btn-group">
-				<button type="button" class="btn btn-default">all</button>
-				<button type="button" class="btn btn-default">info</button>
-				<button type="button" class="btn btn-default">error</button>
-			</div>
-			<div class="btn-group"><button type="button" class="btn btn-default">clear</button></div>
-		</div>
-		<table class="table table-striped">
-			<thead>
-				<tr>
-		        	<th>date</th>
-		        	<th>time</th>
-		        	<th>level</th>
-		        	<th>line</th>
-		        	<th>message</th>
-	        	</tr>
-			</thead>
-			<tbody id="ltbody">
-			</tbody>
-		</table>
-	</script>
-
-	<script type="text/template" id="log-list-template">
-		<% _.each(blogs, function(blog) { %>
-			<tr>
-				<th><%= blog.Date%></th>
-				<th><%= blog.Timestamp%></th>
-				<th><%= blog.Lvl%></th>
-				<th><%= blog.Line%></th>
-				<th><%= blog.Message%></th>
-			</tr>
-		<% }); %>
-	</script>
-<script type="text/javascript" src="assets/js/routes.js"></script>
-<script type="text/javascript" src="assets/js/app.js"></script> 
-<script type="text/javascript" src="assets/js/log.js"></script> 
+		<div class="pure-u-1-5" onclick="app.addTag('<%=tag.value%>')" style="<%=style%>"><span><%=tag.value%></span></div>
+	<% }); %>
+</script>
+<script type="text/javascript" src="assets/js/app.js"></script>
 <script type="text/javascript" src="assets/js/main.js"></script>
 </body>
 </html>

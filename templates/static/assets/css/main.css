@@ -1,95 +1,176 @@
 body {
-    background-color: #1E220B;
     font-size: 15px;
-    font-family: 'Inconsolata', Inconsolata, Monaco, Consolas, "Courier New", monospace;
+    font-family: 'Ubuntu', sans-serif;
+    padding: 0px;
+
+    background-image: url(../img/background.jpg);
+    background-position-x: 0px;
+    background-position-y: 0px;
+    background-size: initial;
+    background-repeat-x: repeat;
+    background-repeat-y: repeat;
+    background-attachment: initial;
+    background-origin: initial;
+    background-clip: initial;
+    background-color: rgb(248, 248, 248);
+    background: url(../img/background.jpg) repeat 0 0 #f8f8f8)
+
 }
 
-#tcont {
-    position: absolute;
-    overflow: auto;
-    border: none;
-    height: 90%;
-}
 
-#lcont {
-    position: absolute;
-    overflow: auto;
-    border: none;
-    vertical-align: center;
-    height: 90%;
-    width: 98%;
-}
-
-nav {
-    z-index: 7;
-}
-
-.release {
-	float: left;
-	position: relative;
-    padding: 5px;
-}
-
-.ribbon {
-    position: absolute;
-    z-index: 1;
-    right: 0;
-    width: 40px !important;
-}
-
-.crop-image {
-	float: left;
-    width: 150px;
-    height: 150px;
-    overflow: hidden;
-    position: relative;
-}
-
-.crop-image img {
-    width: 150px;
-}
-
-.info {
-    width: 320px;
-    height: 150px;
-    background-color: #bf5a16;
-    float: left;
-    padding-left: 5px;
+#navlinks {
+    position: fixed;
+    right: 30px;
+    top: 50px;
+    z-index: 2;
+    color: white;
     display: none;
 }
 
-.info .name {
-    color: #F7FCFA;
-}
-
-.info .hits {
-    color: #F7FCFA;
-}
-
-.info .link-tags {
+#navlinks a {
+    color: #333333;
+    font-size: 20px;
     text-decoration: none;
-    padding: 5px 8px 5px 8px;
-    color: #F7FCFA;
+}
+
+#ab {
+    background-color: #E6E6E6; 
+    display: none;
+}
+
+#cloud {
+    padding: 10px;
+    display: none;
+}
+
+#cloud span:hover{
+    border-bottom: 2px solid #6BB6D2;
+}
+
+#releases {
+    position: absolute;
+    overflow: auto;
+    border: none;
+    margin-top: 5px;
+    height: 90%;
+    width: 100%;
+}
+
+#releases::-webkit-scrollbar { 
+}
+
+.ctable {
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 90%;
+    border-collapse: collapse;
+}
+.release {
+    border: 5px solid rgba(0, 0, 0, 0);
+    padding: 5px;
+    background-color: #E6E6E6;
+    background-clip: padding-box;
+}
+
+.release-hit {
+    border: 5px solid rgba(0, 0, 0, 0);
+    padding: 5px;
+    background-color: #D2D2D2;
+    background-clip: padding-box;
+}
+
+.infos {
+    text-align: left;
+    vertical-align: top;
+    padding: 5px;
+    margin-bottom: 5px;
+    color: #333333;
+}
+
+.ctable thead {
+    display: none;
+}
+
+.ctable tbody tr td {
+    padding: 5px;
+}
+
+.image {
+    width: 100px;
+}
+
+.crop-image {
     float: left;
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
 }
 
-.info .link-track {
-    color: #080E17;
-    background-color: #91C247;
-    padding: 5px 10px 5px 10px;
-    text-decoration: none;
+.crop-image img {
+    width: 130px;
 }
 
-.info .link-notrack {
-    color: #080E17;
-    background-color: #BB813E;
-    padding: 5px 10px 5px 10px;
-    text-decoration: none;
+.title {
+    font-size: 17px;
+    font-weight: bold;
 }
 
-.info .link-imdb {
-    color: #080E17;
-    background-color: #4B7FC3;
-    padding: 5px 10px 5px 10px;
-    text-decoration: none;
+.password {
+    font-weight: bold;
+}
+
+.tags_cont {
+    vertical-align: top;
+}
+
+.tags li {
+    list-style-type: none;
+    margin: 5px;
+}
+
+.tags li a {
+    color: #333333;
+    font-size: 15px;
+    text-decoration:none;
+}
+
+.tags li a:hover {
+    border-bottom: 2px solid #6BB6D2;
+}
+
+.links li {
+    list-style-type: none;
+    margin: 5px;
+}
+
+.links li a {
+    color: #333333;
+    font-size: 15px;
+    text-decoration:none;
+}
+
+.links li a:hover {
+    border-bottom: 2px solid #6BB6D2;
+}
+
+.links li span:hover {
+    border-bottom: 2px solid #6BB6D2;
+}
+
+.button-tag {
+    font-size: 12px !important;
+    background: #E6E6E6 !important;
+}
+
+.button-tag:hover {
+    background: rgb(202, 60, 60) !important; 
+}
+.button-ui {
+    font-size: 12px !important;
+    width: 100px;
+    background: #E6E6E6 !important;
+}
+.button-ui:hover{
+    background: rgb(28, 184, 65) !important;
 }

@@ -1,50 +1,87 @@
 package main
 
 import (
-	"database/sql"
+	"fmt"
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
+	"time"
 
-	"./data"
-	"./mydb"
-	"./webserv"
-	_ "code.google.com/p/go-sqlite/go1/sqlite3"
-	"github.com/coopernurse/gorp"
-	"github.com/dvirsky/go-pylog/logging"
-	"github.com/robfig/config"
+	"log"
+
+	"github.com/Kemonozume/nzbcrawler/config"
+	"github.com/Kemonozume/nzbcrawler/data"
+	"github.com/Kemonozume/nzbcrawler/runner"
+	"github.com/Kemonozume/nzbcrawler/web"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/sirupsen/logrus"
 )
 
-const (
-	DUMP = 0
-)
+const TAG = "[main]"
+
+type DevNull struct{}
+
+func (DevNull) Write(p []byte) (int, error) {
+	return len(p), nil
+}
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	log.Printf("%s starting nzbcrawler", TAG)
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 
-	//db access for releases
-	db, err := sql.Open("sqlite3", "./release.db")
+	conf, err := config.Load("default.ini")
 	if err != nil {
-		panic(err.Error())
-	}
-	reldb := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-	reldb.AddTableWithName(data.Release{}, "release").SetKeys(false, "Checksum").ColMap("Checksum").SetUnique(true).SetNotNull(true)
-	reldb.CreateTablesIfNotExists()
-
-	//db for logs
-	//different database cause of locks with high log frequency
-	dblog, err := sql.Open("sqlite3", "./logs.db")
-	dbmap := &gorp.DbMap{Db: dblog, Dialect: gorp.SqliteDialect{}}
-	dbmap.AddTableWithName(mydb.Log{}, "log").SetKeys(true, "Uid")
-	dbmap.CreateTablesIfNotExists()
-	logdb := mydb.DBLog{DB: dbmap}
-	if err != nil {
-		panic(err.Error())
+		logrus.Fatalf("%s %s", err.Error())
+		return
 	}
 
-	logging.SetOutput(logdb)
+	login := fmt.Sprintf("%s:%s@/%s", conf.DBUser, conf.DBPassword, conf.DBName)
+	dbmy, err := gorm.Open("mysql", login)
+	if err != nil {
+		logrus.Fatalf("%s %s", TAG, err.Error())
+		return
+	}
 
-	//read config file
-	c, _ := config.ReadDefault("default.ini")
+	dbmy.CreateTable(data.Log{})
 
-	//webserver
-	serv := &webserv.Server{Config: c, RelDB: reldb, LogDB: dbmap}
-	serv.Init()
+	l := log.New(new(DevNull), "", 0)
+	dbmy.SetLogger(l)
 
+	logrus.SetOutput(data.DBLog{DB: &dbmy})
+
+	exit := make(chan bool)
+
+	if conf.Crawl {
+		run, err := runner.NewRunner(&dbmy, conf)
+		if err != nil {
+			logrus.Fatalf("%s %s", TAG, err.Error())
+			return
+		}
+		go run.Start(exit)
+	}
+
+	server := web.Server{}
+	server.DB = &dbmy
+	server.Config = conf
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func(s *web.Server) {
+		for sig := range c {
+			logrus.Infof("%s captured %v, starting to shutdown", TAG, sig)
+			s.Close()
+		}
+	}(&server)
+
+	server.Init()
+
+	close(exit)
+	time.Sleep(time.Second * 1)
+	dbmy.Close()
+	log.Printf("%s shutdown finished\n", TAG)
+	os.Exit(1)
 }

@@ -2,30 +2,53 @@ package ghost
 
 import (
 	"errors"
-	log "github.com/dvirsky/go-pylog/logging"
-	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-type Ghostclient struct {
-	User, Password string
-	cookies        []*http.Cookie
-}
-
 const (
-	DUMP  = 0
 	DAILY = "http://ghost-of-usenet.org/search.php?action=24h"
 	LOGIN = "http://ghost-of-usenet.org/login.php"
 )
 
-func (g *Ghostclient) getFirstTimeShit() error {
-	log.Info("%s[GET] url: %v", TAG, LOGIN)
-	log.Info("%s getting cookies", TAG)
+func Redirect(req *http.Request, via []*http.Request) error {
+	return errors.New("bla")
+}
+
+type GhostClient struct {
+	User, Password string
+	cookies        []*http.Cookie
+	logged_in      bool
+	dump           bool
+}
+
+func NewClient() (gc *GhostClient) {
+	gc = &GhostClient{}
+	gc.logged_in = false
+	gc.dump = false
+	return gc
+}
+
+func (g *GhostClient) SetAuth(user, password string) {
+	g.User = user
+	g.Password = password
+}
+
+func (g *GhostClient) SetDump(val bool) {
+	g.dump = val
+}
+
+func (g GhostClient) IsLoggedIn() bool {
+	return g.logged_in
+}
+
+func (g *GhostClient) getFirstTimeStuff() error {
+	log.Infof("%s GET %v", TAG, LOGIN)
+	log.Infof("%s getting cookies", TAG)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", LOGIN, nil)
 	if err != nil {
@@ -39,9 +62,6 @@ func (g *Ghostclient) getFirstTimeShit() error {
 	req.Header.Add("Connection", "Keep-Alive")
 	req.Header.Add("Host", "ghost-of-usenet.org")
 
-	time1 := time.Now()
-	g.dumpRequest(req, "ghost_first_req_"+strconv.Itoa(time1.Nanosecond()))
-
 	//connect to sUrl
 	resp, err := client.Do(req)
 	if err != nil {
@@ -49,16 +69,15 @@ func (g *Ghostclient) getFirstTimeShit() error {
 	}
 
 	g.cookies = resp.Cookies()
-	g.dumpResponse(resp, "ghost_first_resp_"+strconv.Itoa(time1.Nanosecond()))
 
 	return nil
 }
 
 // Logs into town.ag and returns the response cookies
-func (g *Ghostclient) Login() error {
-	log.Info("%s login process started", TAG)
+func (g *GhostClient) Login() error {
+	log.Infof("%s login process started", TAG)
 
-	g.getFirstTimeShit()
+	g.getFirstTimeStuff()
 
 	param := url.Values{}
 	param.Set("url", "index.php")
@@ -75,7 +94,7 @@ func (g *Ghostclient) Login() error {
 		return err
 	}
 
-	log.Info("%s[POST] url: %v", TAG, LOGIN)
+	log.Infof("%s POST %v", TAG, LOGIN)
 
 	if g.cookies != nil {
 		for _, cookie := range g.cookies {
@@ -95,8 +114,6 @@ func (g *Ghostclient) Login() error {
 	req.Header.Add("Connection", "Keep-Alive")
 	req.Header.Add("Pragma", "no-cache")
 
-	g.dumpRequest(req, "town_login_req")
-
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -104,21 +121,19 @@ func (g *Ghostclient) Login() error {
 
 	defer resp.Body.Close()
 
-	g.dumpResponse(resp, "town_login_resp")
 	g.cookies = resp.Cookies()
+	g.logged_in = true
 	return nil
 }
 
 //http get to the given ressource
-func (g *Ghostclient) Get(sUrl string) (*http.Response, error) {
-	if strings.Contains(sUrl, "jpg") || strings.Contains(sUrl, "png") || strings.Contains(sUrl, "gif") {
-	} else {
-		log.Info("%s[GET] url: %v", TAG, sUrl)
-	}
+func (g *GhostClient) Get(sUrl string) (*http.Response, error) {
+	log.Infof("%s GET %v", TAG, sUrl)
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", sUrl, nil)
 	if err != nil {
-		log.Error("%s couldn't create Request to: %v", TAG, sUrl)
+		log.Errorf("%s couldn't create Request to: %v", TAG, sUrl)
 		return nil, err
 	}
 
@@ -136,34 +151,25 @@ func (g *Ghostclient) Get(sUrl string) (*http.Response, error) {
 		}
 	}
 
-	time1 := time.Now()
-	g.dumpRequest(req, "ghost_get_req_"+strconv.Itoa(time1.Nanosecond()))
-
 	//connect to sUrl
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error("%s couldn't connect to: %v", TAG, sUrl)
+		log.Errorf("%s couldn't connect to: %v", TAG, sUrl)
 		return nil, err
 	}
-
-	g.dumpResponse(resp, "ghost_get_resp_"+strconv.Itoa(time1.Nanosecond()))
 
 	return resp, nil
 }
 
-func Redirect(req *http.Request, via []*http.Request) error {
-	return errors.New("bla")
-}
-
 //return the Daily url or "" if something went wrong
-func (g *Ghostclient) GetDailyUrl() (string, error) {
+func (g *GhostClient) GetDailyUrl() (string, error) {
 	client := &http.Client{
 		CheckRedirect: Redirect,
 	}
-	log.Info("%s[GET] url: %v", TAG, DAILY)
+	log.Infof("%s GET url: %v", TAG, DAILY)
 	req, err := http.NewRequest("GET", DAILY, nil)
 	if err != nil {
-		log.Error("%s %s", TAG, err.Error())
+		log.Errorf("%s %s", TAG, err.Error())
 		return "", err
 	}
 
@@ -180,42 +186,16 @@ func (g *Ghostclient) GetDailyUrl() (string, error) {
 			req.AddCookie(cookie)
 		}
 	}
-
-	time1 := time.Now()
-	g.dumpRequest(req, "daily_req_"+strconv.Itoa(time1.Nanosecond()))
 
 	resp, err := client.Do(req)
 	if resp == nil {
 		return "", err
 	}
 
-	g.dumpResponse(resp, "daily_resp_"+strconv.Itoa(time1.Nanosecond()))
-
 	url, err := resp.Location()
 	if err != nil {
 		return "", err
 	}
-	log.Info("%s daily url: %v", TAG, url.String())
 	return url.String(), nil
 
-}
-
-func (g *Ghostclient) dumpRequest(req *http.Request, name string) {
-	if DUMP == 1 {
-		dump1, err := httputil.DumpRequestOut(req, true)
-		if err != nil {
-			log.Critical("dump of %v request failed", name)
-		}
-		ioutil.WriteFile(name, dump1, 0777)
-	}
-}
-
-func (g *Ghostclient) dumpResponse(resp *http.Response, name string) {
-	if DUMP == 1 {
-		dump, err := httputil.DumpResponse(resp, true)
-		if err != nil {
-			log.Critical("log failed for get Request")
-		}
-		ioutil.WriteFile(name, dump, 0777)
-	}
 }

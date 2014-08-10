@@ -1,133 +1,70 @@
 var patt = new RegExp("^(.*?)(German|german|1080|720|[0-9]{4})");
+var app = AppObj
 
-toastr.options = {
-  "closeButton": false,
-  "debug": false,
-  "positionClass": "toast-bottom-right",
-  "onclick": null,
-  "showDuration": "300",
-  "hideDuration": "1000",
-  "timeOut": "3000",
-  "extendedTimeOut": "1000",
-  "showEasing": "linear",
-  "hideEasing": "linear",
-  "showMethod": "fadeIn",
-  "hideMethod": "fadeOut"
+$.getJSON("/db/tags/", function(data2) {
+    if ($.isEmptyObject(data2)) {
+        return
+    }
+    $("#cloudlist").append(_.template($('#tags-list-template').html(), {tags: data2}));
+})
+
+
+app.activateScrollBinding()
+app.buildUI()
+app.addReleases()
+
+function getNZB(view, id) {
+    $.get("/db/event/"+id+"/thank", function( data ) {
+      var li = view.parentNode
+      $(li).empty()
+      $(li).append("<a target='_blank' href='/db/event/"+data.id+"/nzb'>nzb download</a>")
+      $(li.parentNode.parentNode.parentNode.childNodes[3]).append("<br><br><span class='password'>Password: "+data.passwort+"</span>")
+    });
 }
 
-String.prototype.pad = function(l, s, t){
-    return s || (s = " "), (l -= this.length) > 0 ? (s = new Array(Math.ceil(l / s.length)
-        + 1).join(s)).substr(0, t = !t ? l : t == 1 ? 0 : Math.ceil(l / 2))
-        + this + s.substr(0, l - t) : this;
-};
-
-var route = RouteObj;
-var app = AppObj;
-var log = LogObj;
-
-app.activateScrollBinding();
-log.activateScrollBinding();
-
-route.addRoute("/", function() {
-    app.reset();
-    app.addUI();
-});
-route.addRoute("/search", function() {
-     app.reset();
-    var bla = document.getElementById("s-name").value;
-    var bla2 = document.getElementById("s-genre").value;
-    if(bla == "") {
-        bla = "none";
+function toggleActionbar() {
+    if (document.getElementById("toggleaction").innerText == "▼") {
+        
+        $("#releases").animate({
+            height: "85%" 
+        }, 300, function() {
+            $("#ab").show("fast")
+        })
+        document.getElementById("toggleaction").innerText = "▲"
+    }else {
+        $("#ab").hide("fast", function() {
+            $("#releases").animate({
+                height: "90%" 
+            }, 300)
+        })
+        document.getElementById("toggleaction").innerText = "▼"
+        
     }
-    if(bla2 == "") {
-        bla2 = "none";
-    }
-
-    app.genre = bla2;
-    app.name = bla;
-    app.addUI();
-});
-route.addRoute("/stats", function() {
-    log.reset();
-    log.addUI();
-});
-route.addRoute("/logs", function() {
-    log.reset();
-    log.addUI();
-});
-route.addRoute("/movies", function() {
-    app.reset();
-    app.genre = "movie";
-    app.addUI();
-});
-route.addRoute("/movies/hd", function() {
-    app.reset();
-    app.genre = "movie&hd";
-    app.addUI();
-});
-route.addRoute("/movies/hd", function() {
-    app.reset();
-    app.genre = "movie&hd";
-    app.addUI();
-});
-route.addRoute("/movies/sd", function() {
-    app.reset();
-    app.genre = "movie&sd";
-    app.addUI();
-});
-route.addRoute("/cinema", function() {
-    app.reset();
-    app.genre = "cinema";
-    app.addUI();
-});
-route.addRoute("/cinema/hd", function() {
-    app.reset();
-    app.genre = "cinema&hd";
-    app.addUI();
-});
-route.addRoute("/cinema/sd", function() {
-    app.reset();
-    app.genre = "cinema&sd";
-    app.addUI();
-});
-route.addRoute("/serie", function() {
-    app.reset();
-    app.genre = "serie";
-    app.addUI();
-});
-route.addRoute("/serie/hd", function() {
-    app.reset();
-    app.genre = "serie&hd";
-    app.addUI();
-});
-route.addRoute("/serie/sd", function() {
-    app.reset();
-    app.genre = "serie&sd";
-    app.addUI();
-});
-route.addRoute("/pc", function() {
-    app.reset();
-    app.genre = "pc";
-    app.addUI();
-});
-route.create();
-
-
-$('#s-button').bind("click", function() {
-    parent.location.hash = "/search/"+makeid();
-});
-
-function makeid(){
-    var text = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-    for( var i=0; i < 5; i++ )
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-    return text;
 }
 
+function toggleCloud() {
+    if($("#cloud").is(":visible")) {
+        $("#cloud").hide()
+        $("#releases").show()
+    }else {
+        $("#cloud").show()
+        $("#releases").hide()
+    }
+}
 
+function AddTag() {
+    app.addTag(document.getElementById('abtags_input').value)
+    document.getElementById('abtags_input').value = ""
+}
+
+function AddName() {
+    app.addName(document.getElementById('abtags_input').value)
+    document.getElementById('abtags_input').value = ""
+}
+
+function scrollToTop() {
+    document.getElementById("releases").scrollTop = 0
+}
 
 function getMovieName(str) {
     var bla = patt.exec(str);
@@ -144,3 +81,9 @@ function getMovieName(str) {
         return null;
     }
 }
+
+String.prototype.pad = function(l, s, t){
+    return s || (s = " "), (l -= this.length) > 0 ? (s = new Array(Math.ceil(l / s.length)
+        + 1).join(s)).substr(0, t = !t ? l : t == 1 ? 0 : Math.ceil(l / 2))
+        + this + s.substr(0, l - t) : this;
+};

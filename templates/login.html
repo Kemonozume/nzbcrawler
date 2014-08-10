@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>stats</title>
+	<link rel="icon" href="assets/img/icon.png" type="image/png" />
+	<link rel="stylesheet" type="text/css" href="assets/css/main.css" />
+	<link rel="stylesheet" type="text/css" href="assets/css/pure-min.css" />
+	<link href='http://fonts.googleapis.com/css?family=Ubuntu:300' rel='stylesheet' type='text/css'>
+	<script type="text/javascript" src="assets/js/jquery-2.1.1.min.js"></script>
+<script>
+function Send() {
+	var key = document.getElementById("key").value
+	console.log("/login/"+key)
+	location.href="/login/"+key
+}
+$('form :submit').attr("disabled", "disabled");
+</script>
+</head>
+<body>
+<div class="pure-menu pure-menu-open pure-menu-horizontal">
+    <a href="#" class="pure-menu-heading">nzbcrawler</a>
+
+    <ul>
+		<li class="pure-menu-selected"><a href="#">login</a></li>
+    </ul>
+</div>
+
+<div style="margin-right: auto; margin-left: auto; width: 800px;">
+
+<div class="pure-control-group" style="padding:10px;">
+    <input id="key" type="text" placeholder="Key">
+</div>
+<div class="pure-controls"  style="padding:10px;">
+	<button class="pure-button pure-button-primary" onclick="Send()">Login</button>
+</div>
+
+</div>
+</body>
+</html>

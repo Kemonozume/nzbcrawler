@@ -1,87 +1,116 @@
 var AppObj = {
-	name: "none",
-	genre: "none",
+	name: "",
+	tags: [],
 	offset: 0,
 	isLoading: false,
-	old_info: undefined,
 
 
 	reset: function() {
-		this.name = "none";
-		this.genre = "none";
+		this.name = "";
+		this.tags = [];
 		this.offset = 0;
-		this.old_info = undefined;
-		$(tcont).empty();
+		$("#cont").empty();
+		this.buildUI()
 	},
 
-	addUI: function() {
-		$("#tcont").show();
+	resetViewsOffset: function() {
+		this.offset = 0;
+		$("#cont").empty();
+		this.buildUI()
+	},
+
+	addReleases: function() {
 		if (this.isLoading) {
 			return;
 		}
+		NProgress.start();
 		this.isLoading = true;
-		var url = '/db/events/' + this.offset + "/" + this.genre + "/" + this.name;
 		var that = this;
-		$.getJSON(url, function (data) {
-			if ($.isEmptyObject(data)) {
+		$.ajax({
+  			url: this.getUrl(),
+  			dataType: "json",
+  		}).done(function(data) {
+  			if ($.isEmptyObject(data)) {
 				that.isLoading = false;
-				if(document.getElementById("tcont").childNodes.length == 0) {
-					toastr.error("kein ergebniss gefunden");
-				}else {
-					toastr.info("no more data to display~~");
-				}
-				
+				NProgress.done();
 				return;
 			}
-			console.log(data);
-			$("#tcont").append(_.template($('#release-list-template').html(), {releases: data}));
+			$("#cont").append(_.template($('#release-list-template').html(), {releases: data}));
 			that.isLoading = false;
-			that.offset+=200;
-		});
+			that.offset+=100;
+			NProgress.done();
+  		}).fail(function() {
+  			that.isLoading = false;
+  			NProgress.done()
+  		});
+		
+	},
+
+	getUrl: function() {
+		var url = '/db/events/?offset=' + this.offset;
+		if (this.tags.length > 0) {
+			url += "&tags="+this.tags.join(",")
+		}
+		if (this.name != "") {
+			url += "&name="+this.name
+		}
+		console.log(url)
+		return url
 	},
 
 	activateScrollBinding: function() {
 		var that = this;
-		$(tcont).scroll(function() {
-			if($(tcont).scrollTop() + $(tcont).height() == tcont.scrollHeight) {
-				that.addUI();
+		$("#releases").scroll(function() {
+			if ($("#releases").scrollTop() > 300) {
+				$("#navlinks").show()
+			}else {
+				$("#navlinks").hide()
+			}
+
+			if($("#releases").scrollTop() + $("#releases").height() == document.getElementById("releases").scrollHeight) {
+				that.addReleases();
 			}
 		})
 	},
 
-	showInfo: function(view) {
-		var info = view.parentNode.childNodes[3];
-
-	    if(this.old_info == undefined) {
-	        this.old_info = info;
-	    }
-
-	    if(this.old_info != info) {
-	        $(this.old_info.parentNode.nextElementSibling).show();
-	        $(this.old_info.parentNode.nextElementSibling.nextElementSibling).show();
-	        $(this.old_info).hide();
-	    }
-
-	    this.old_info = info;
-
-	    if(info.style.display == "none" || info.style.display == "") {
-	        $(this.old_info.parentNode.nextElementSibling).hide();
-	        $(this.old_info.parentNode.nextElementSibling.nextElementSibling).hide();
-	        $(this.old_info).show();
-	    }
-	    else {
-	        $(this.old_info.parentNode.nextElementSibling).show();
-	        $(this.old_info.parentNode.nextElementSibling.nextElementSibling).show();
-	        $(this.old_info).hide();
-	    }
-	    
+	buildUI: function() {
+		$("#abtags").empty()
+		$("#abname").empty()
+		var str = ""
+		for(var i = 0; i < this.tags.length; i++) {
+			str += "<button class='button-tag pure-button' onclick='app.removeTag(\""+this.tags[i]+"\")'>"
+			str += this.tags[i]
+			str +="</button>"
+		}
+		$("#abtags").append(str)
+		if (this.name != "") {
+			$("#abname").append("<button class='button-tag pure-button' onclick='app.removeName()'>"+this.name+"</button>")
+		}
 	},
 
-	setTag: function(genre) {
-		document.getElementById("s-genre").value = genre;
-    	parent.location.hash = "/search/"+makeid();
+	addTag: function(tag) {
+		this.tags.push(tag)
+		this.buildUI()
+	},
+
+	removeTag: function(tag) {
+		for(var i = 0; i < this.tags.length;i++) {
+			if (this.tags[i] == tag) {
+				this.tags.splice(i, 1)
+				break
+			}
+		}
+		this.buildUI()
+	},
+
+	addName: function(name) {
+		this.name = name
+		this.buildUI()
+	},
+
+	removeName: function() {
+		this.name = ""
+		this.buildUI()
 	}
-
-
 	
 }
