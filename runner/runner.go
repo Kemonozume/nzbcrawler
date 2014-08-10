@@ -54,6 +54,9 @@ func (r *Runner) initCrawler() {
 func (r *Runner) Start(ex chan bool) {
 	r.initCrawler()
 	log.Infof("%s starting", TAG)
+	for _, man := range r.Manager {
+		go man.Start()
+	}
 	log.Infof("%s timeout is %s", TAG, r.Timeout)
 	for ex != nil {
 		select {

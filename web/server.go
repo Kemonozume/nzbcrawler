@@ -96,10 +96,10 @@ func (s *Server) Init() {
 			session, _ := store.Get(r, "top-kek")
 			session.Values["logged_in"] = true
 			session.Save(r, w)
-			log.Infof("%s %s managed to log in", TAG, r.RemoteAddr)
+			log.Warningf("%s %s managed to log in", TAG, r.RemoteAddr)
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		} else {
-			log.Infof("%s %s failed to log in with key %s", TAG, r.RemoteAddr, key)
+			log.Warningf("%s %s failed to log in with key %s", TAG, r.RemoteAddr, key)
 			http.Error(w, "nope", http.StatusForbidden)
 		}
 	})
