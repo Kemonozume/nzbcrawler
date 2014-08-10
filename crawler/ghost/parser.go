@@ -111,6 +111,8 @@ func (g *GhostParser) getImageUrl(url string) (url2 string) {
 		}
 	})
 
+	time.Sleep(2 * time.Second)
+
 	return url2
 }
 
