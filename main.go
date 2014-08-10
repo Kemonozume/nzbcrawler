@@ -46,10 +46,14 @@ func main() {
 		return
 	}
 
-	dbmy.CreateTable(data.Log{})
-
 	l := log.New(new(DevNull), "", 0)
 	dbmy.SetLogger(l)
+
+	dbmy.CreateTable(data.Log{})
+	dbmy.DB()
+	dbmy.DB().Ping()
+	dbmy.DB().SetMaxIdleConns(10)
+	dbmy.DB().SetMaxOpenConns(100)
 
 	logrus.SetOutput(data.DBLog{DB: &dbmy})
 
