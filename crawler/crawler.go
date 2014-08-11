@@ -32,10 +32,11 @@ type Manager struct {
 	send_chan      chan []data.Release
 	maxpage        int
 	end            bool
-	end_check      func(rel data.Release) bool
-	parser         Parser
-	client         Client
 	name           string
+	client         Client
+	parser         Parser
+	client_func    func() Client
+	parser_func    func() Parser
 }
 
 func NewManager(user, password, name string, ch chan []data.Release) (m *Manager) {
@@ -47,21 +48,20 @@ func (m *Manager) SetEnd(end bool) {
 	m.end = end
 }
 
-func (m *Manager) SetEndPointFunction(s func(rel data.Release) bool) {
-	m.end_check = s
+func (m *Manager) SetParser(s func() Parser) {
+	m.parser_func = s
 }
 
-func (m *Manager) SetParser(par Parser) {
-	m.parser = par
-}
-
-func (m *Manager) SetClient(client Client) {
-	m.client = client
+func (m *Manager) SetClient(s func() Client) {
+	m.client_func = s
 }
 
 func (m *Manager) Start() (err error) {
 	log.Infof("%s Manager starting", TAG)
 	m.end = false
+
+	m.client = m.client_func()
+	m.parser = m.parser_func()
 
 	m.client.SetAuth(m.User, m.Password)
 
@@ -93,25 +93,27 @@ func (m *Manager) Start() (err error) {
 		return errors.New("pagecount failed")
 	}
 
-	i := 1
+	tmp := m.parser.ParseReleases()
+	if len(tmp) > 0 {
+		tmp = append(tmp, data.Release{Name: m.name})
+		m.send_chan <- tmp
+	}
+
+	i := 2
 
 	for {
-		if i != 1 {
-			err = m.parser.ParseUrlWithClient(url+"&pp=25&page="+strconv.Itoa(i), &m.client)
-			if err != nil {
-				log.Errorf("%s %s", TAG, err.Error())
-				time.Sleep(2 * time.Second)
-				i++
-				continue
-			}
+		m.parser = m.parser_func()
+		err = m.parser.ParseUrlWithClient(url+"&pp=25&page="+strconv.Itoa(i), &m.client)
+		if err != nil {
+			log.Errorf("%s %s", TAG, err.Error())
+			time.Sleep(2 * time.Second)
+			i++
+			continue
 		}
 
 		rel := m.parser.ParseReleases()
 		if len(rel) > 0 {
-			if m.end_check(rel[0]) {
-				log.Infof("%s %s found old endpoint, closing", TAG, m.name)
-				break
-			}
+			rel = append(rel, data.Release{Name: m.name})
 			m.send_chan <- rel
 		}
 

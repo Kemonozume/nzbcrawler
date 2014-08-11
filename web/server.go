@@ -99,6 +99,7 @@ func (s *Server) Init() {
 		if key == conf.Key {
 			session, _ := store.Get(r, "top-kek")
 			session.Values["logged_in"] = true
+			session.Values["ip"] = strings.Split(r.RemoteAddr, ":")[0]
 			session.Save(r, w)
 			log.Warningf("%s %s managed to log in", TAG, r.RemoteAddr)
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
@@ -154,7 +155,7 @@ func HandleRecovery() {
 }
 
 func LogTime(url string, start time.Time) {
-	if strings.Contains(url, "/image") {
+	if strings.Contains(url, "/image") || strings.Contains(url, "/assets/") {
 		return
 	}
 	log.Infof("%s GET %s in %s", TAG, url, time.Since(start))
@@ -178,8 +179,8 @@ func (s *Server) AuthMiddleWare(c *web.C, h http.Handler) http.Handler {
 			sess, err := c.Env["store"].(*sessions.CookieStore).Get(r, "top-kek")
 			if err != nil {
 				log.Errorf("%s %s", TAG, err.Error())
-			} else if sess != nil && sess.Values["logged_in"] != nil {
-				if sess.Values["logged_in"].(bool) {
+			} else if sess != nil && sess.Values["logged_in"] != nil && sess.Values["ip"] != nil {
+				if sess.Values["logged_in"].(bool) && strings.Split(r.RemoteAddr, ":")[0] == sess.Values["ip"].(string) {
 					logged_in = true
 				}
 				c.Env["store"].(*sessions.CookieStore).Save(r, w, sess)
@@ -273,6 +274,7 @@ func GetReleaseImage(c web.C, w http.ResponseWriter, r *http.Request) {
 	err = db.Model(&rel).First(&rel).Error
 	HandleError(w, r, err, "release not found", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
 
+	w.Header().Add("Cache-Control", "max-age=1296000")
 	if rel.Image == "" {
 		w.Write(i404)
 	} else {

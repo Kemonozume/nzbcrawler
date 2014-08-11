@@ -35,14 +35,14 @@ func main() {
 
 	conf, err := config.Load("default.ini")
 	if err != nil {
-		logrus.Fatalf("%s %s", err.Error())
+		logrus.Fatalf("%s error loading config: %s", err.Error())
 		return
 	}
 
 	login := fmt.Sprintf("%s:%s@/%s", conf.DBUser, conf.DBPassword, conf.DBName)
 	dbmy, err := gorm.Open("mysql", login)
 	if err != nil {
-		logrus.Fatalf("%s %s", TAG, err.Error())
+		logrus.Fatalf("%s error connecting to db: %s", TAG, err.Error())
 		return
 	}
 
@@ -50,6 +50,8 @@ func main() {
 	dbmy.SetLogger(l)
 
 	dbmy.CreateTable(data.Log{})
+	dbmy.CreateTable(data.Release{})
+	dbmy.CreateTable(data.Tag{})
 	dbmy.DB()
 	dbmy.DB().Ping()
 	dbmy.DB().SetMaxIdleConns(10)
@@ -62,7 +64,7 @@ func main() {
 	if conf.Crawl {
 		run, err := runner.NewRunner(&dbmy, conf)
 		if err != nil {
-			logrus.Fatalf("%s %s", TAG, err.Error())
+			logrus.Fatalf("%s error starting runner: %s", TAG, err.Error())
 			return
 		}
 		go run.Start(exit)

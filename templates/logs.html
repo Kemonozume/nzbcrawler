@@ -32,8 +32,8 @@
     <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="AddLevel()">add level</button><button class="button-ui pure-button" onclick="AddTag()">add tag</button></div>
     <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="app.reset();app.addLogs()">reset</button></div>
     <div class="pure-u-1-4" id="ablevel"></div>
-    <div class="pure-u-1-4"></div>
-    <div class="pure-u-1-4"></div>
+    <div class="pure-u-1-4"><input style="margin-top: 5px;" id="filter" type="text"></div>
+    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="Filter()">filter</button></div>
 </div>
 </div>
 
@@ -62,6 +62,10 @@
 
 <script type="text/template" id="logs-list-template">
 	<% _.each(logs, function(log) { %>
+		<% var filter = document.getElementById("filter").value %>
+		<% if (filter != "") { %> 
+			<% if(log.message.indexOf(filter) == -1) { return } %>
+		<%} %>
 		<% if (log.level != "info") { %>
 			<tr class="release-hit">
 		<% }else { %>

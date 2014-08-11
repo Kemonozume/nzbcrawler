@@ -219,7 +219,7 @@ func (t *TownClient) addHeader(req *http.Request) {
 	req.Header.Add("Host", "www.town.ag")
 	//req.Header.Add("Origin", "www.town.ag")
 	req.Header.Add("Referer", "http://www.town.ag/v2/")
-	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.116 Safari/537.36")
+	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36")
 	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	req.Header.Add("Accept-Language", "de-DE,de;q=0.8,en-US;q=0.6,en;q=0.4")
 	req.Header.Add("Cache-Control", "max-age=0")

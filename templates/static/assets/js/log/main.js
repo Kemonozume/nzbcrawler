@@ -1,4 +1,5 @@
 var app = LogObj
+var filter = ""
 
 
 app.activateScrollBinding()
@@ -29,6 +30,21 @@ function toggleActionbar() {
 function scrollToTop() {
     document.getElementById("releases").scrollTop = 0
 }
+
+function Filter() {
+    var filter = document.getElementById("filter").value
+    $("#cont tr").each(function(index) {
+        text = $(this).children().last()[0].innerText
+        console.log(text)
+        console.log(filter)
+        if (text.indexOf(filter) != -1) {
+            $(this).show()
+        }else {
+            $(this).hide()
+        }
+    })
+}
+
 function AddTag() {
     app.addTag(document.getElementById('abtags_input').value)
     document.getElementById('abtags_input').value = ""

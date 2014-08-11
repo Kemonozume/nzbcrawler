@@ -3,7 +3,6 @@ package web
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/Kemonozume/nzbcrawler/crawler/town"
 	"github.com/Kemonozume/nzbcrawler/data"
 	"github.com/jinzhu/gorm"
+	log "github.com/sirupsen/logrus"
 	"github.com/zenazn/goji/web"
 )
 
@@ -177,6 +177,8 @@ func (r Releases) GetReleasesWithTags(c web.C, offset int, tags []string) (by []
 
 	query := buffer.String()
 
+	log.Infof("%s releases with tags query: %s", TAG, query)
+
 	rows, err := db.Raw(query, args...).Rows()
 	if err != nil {
 		return
@@ -199,14 +201,37 @@ func (r Releases) GetReleasesWithTags(c web.C, offset int, tags []string) (by []
 func (r Releases) GetReleasesWithName(c web.C, offset int, name string) (by []byte, err error) {
 	db := c.Env["db"].(*gorm.DB)
 
+	var buffer bytes.Buffer
 	var release []data.Release
-	err = db.Where("name LIKE ?", fmt.Sprintf("%%%s%%s", name)).Order("time desc").Limit(LIMIT).Offset(offset).Find(&release).Error
+
+	buffer.WriteString("SELECT id FROM releases WHERE name LIKE '%")
+	buffer.WriteString(name)
+	buffer.WriteString("%' ORDER BY time DESC LIMIT 100 OFFSET ")
+	buffer.WriteString(strconv.Itoa(offset))
+
+	query := buffer.String()
+	log.Infof("%s releases with name query: %s", TAG, query)
+
+	rows, err := db.Raw(query).Rows()
 	if err != nil {
 		return
 	}
+	for rows.Next() {
+		rel := data.Release{}
+		rows.Scan(&rel.Id)
+		release = append(release, rel)
+	}
+	rows.Close()
 
 	for i, rel := range release {
-		db.Model(&rel).Related(&rel.Tags, "Tags")
+		err = db.Where("id = ?", rel.Id).First(&rel).Error
+		if err != nil {
+			return
+		}
+		err = db.Model(&rel).Related(&rel.Tags, "Tags").Error
+		if err != nil {
+			return
+		}
 		release[i] = rel
 	}
 	by, err = json.Marshal(release)
