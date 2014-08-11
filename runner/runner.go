@@ -5,10 +5,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Kemonozume/backup/crawler/ghost"
-	"github.com/Kemonozume/backup/crawler/town"
 	"github.com/Kemonozume/nzbcrawler/config"
 	"github.com/Kemonozume/nzbcrawler/crawler"
+	"github.com/Kemonozume/nzbcrawler/crawler/ghost"
+	"github.com/Kemonozume/nzbcrawler/crawler/town"
 	"github.com/Kemonozume/nzbcrawler/data"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
