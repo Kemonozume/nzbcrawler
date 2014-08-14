@@ -79,7 +79,10 @@ func (r Releases) ThankReleaseWithId(c web.C, id int64) ([]byte, error) {
 		url := tp.GetNzbUrl()
 		passwd := tp.GetPassword()
 
-		db.Model(&rel).UpdateColumn("password", passwd).UpdateColumn("nzb", url)
+		err = db.Model(&rel).First(&rel).UpdateColumns(data.Release{Nzb: url, Password: passwd}).Error
+		if err != nil {
+			return nil, err
+		}
 
 		retval := map[string]interface{}{
 			"id":       id,

@@ -91,6 +91,7 @@
 			</br></br>Hits: <%= release.hits %>
 			<% if ( release.password != "" && release.password != undefined ){ %> 
 				</br></br><span class="password">Password: <%= release.password %></span>
+				</br>Filename: <%=release.name%>{{<%= release.password %>}}.nzb</span>
 			<% } %>
 		</td>
 		<td class="tags_cont">
@@ -111,6 +112,11 @@
 				<li>
 					<a target="_blank" href="<%= release.url %>">notrack</a>
 				</li>
+				<% var name = getMovieName(release.name) %>
+				<% if(name == null) { name = release.name } %>
+				<%  if ($.inArray("movies", release.tags) !== -1  ||  $.inArray("cinema", release.tags) !== -1) { %>
+					<a class="link-imdb" target="_blank" href="http://www.imdb.com/find?s=tt&q=<%= name %>">imdb</a>
+				<% }%>
 				<li>
 				<% if (release.url.indexOf("town") != -1 ) { %>
 					<% if ( release.nzb_link != "" && release.nzb_link != undefined ){ %> 
