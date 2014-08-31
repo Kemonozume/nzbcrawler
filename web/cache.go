@@ -103,7 +103,7 @@ func (c *Cache) Add(url string) (success bool) {
 	} else if strings.Contains(url, "png") {
 		img, err := png.Decode(resp.Body)
 		if err != nil {
-			log.Error("%s %s", TAG, err.Error())
+			log.Errorf("%s %s", TAG, err.Error())
 			return false
 		}
 		err = jpeg.Encode(buf, img, nil)

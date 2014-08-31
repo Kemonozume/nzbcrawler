@@ -47,7 +47,7 @@ var AppObj = {
 	},
 
 	getUrl: function() {
-		var url = '/db/events/?offset=' + this.offset;
+		var url = '/db/releases/?offset=' + this.offset;
 		if (this.tags.length > 0) {
 			url += "&tags="+this.tags.join(",")
 		}
@@ -60,17 +60,15 @@ var AppObj = {
 
 	activateScrollBinding: function() {
 		var that = this;
-		$("#releases").scroll(function() {
-			if ($("#releases").scrollTop() > 300) {
-				$("#navlinks").show()
-			}else {
-				$("#navlinks").hide()
-			}
 
-			if($("#releases").scrollTop() + $("#releases").height() == document.getElementById("releases").scrollHeight) {
+		var bod = document.getElementsByTagName("body")[0];
+
+		$(window).scroll(function() {
+			if($(window).scrollTop() + $(window).height() == bod.scrollHeight) {
 				that.addReleases();
 			}
 		})
+
 	},
 
 	buildUI: function() {
@@ -78,13 +76,13 @@ var AppObj = {
 		$("#abname").empty()
 		var str = ""
 		for(var i = 0; i < this.tags.length; i++) {
-			str += "<button class='button-tag pure-button' onclick='app.removeTag(\""+this.tags[i]+"\")'>"
+			str += "<button class='btn btn-default btn-xs btn-flat btn-rem' onclick='app.removeTag(\""+this.tags[i]+"\")'>"
 			str += this.tags[i]
 			str +="</button>"
 		}
 		$("#abtags").append(str)
 		if (this.name != "") {
-			$("#abname").append("<button class='button-tag pure-button' onclick='app.removeName()'>"+this.name+"</button>")
+			$("#abname").append("<button class='btn btn-default btn-xs btn-flat btn-rem' onclick='app.removeName()'>"+this.name+"</button>")
 		}
 	},
 

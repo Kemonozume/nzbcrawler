@@ -5,7 +5,7 @@
 	<link rel="icon" href="assets/img/icon.png" type="image/png" />
 	<link rel="stylesheet" type="text/css" href="assets/css/main.css" />
 	<link rel="stylesheet" type="text/css" href="assets/css/log.css" />
-	<link rel="stylesheet" type="text/css" href="assets/css/pure-min.css" />
+	<link rel="stylesheet" type="text/css" href="assets/css/bootstrap.css" />
 	<link rel='stylesheet' type="text/css" href='assets/css/nprogress.css'/>
 	<link href='http://fonts.googleapis.com/css?family=Ubuntu:300' rel='stylesheet' type='text/css'>
 	<script type="text/javascript" src="assets/js/underscore-min.js"></script>
@@ -13,59 +13,53 @@
 	<script type="text/javascript" src='assets/js/nprogress.js'></script>
 </head>
 <body>
-<div class="pure-menu pure-menu-open pure-menu-horizontal">
-    <a href="/" class="pure-menu-heading">nzbcrawler</a>
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+		<a class="navbar-brand" href="/">nzbcrawler</a>
+		<ul class="nav navbar-nav">
+        	<li><a href="/">browse</a></li>
+        	<li class="active"><a href="#">logs</a></li>
+        	<li><a href="/stats">stats</a></li>
+        </ul>
+	</div>
+</nav>
 
-    <ul>
-        <li><a href="/">browse</a></li>
-		<li class="pure-menu-selected"><a href="#">logs</a></li>
-		<li><a href="/stats">stats</a></li>
-		<li><a href="#" onclick="toggleActionbar()" id="toggleaction">▼</a></li>
-    </ul>
+<div class="container-fluid">
+	<div class="row">
+	  <div class="col-md-2">
+	  	<ul style="padding: 2px; list-style-type: none;">
+	  		<li><input tabindex="1" id="ablevel_input" type="text" placeholder="Level..."></li>
+	   		<li><input tabindex="2" id="abtags_input" type="text" placeholder="Tags..."></li>
+	   		<li><div id="ablevel"></div></li>
+	    	<li><div id="abtags"></div></li>
+	    	<li><button tabindex="3" type="button" class="btn btn-primary btn-sm btn-flat" onclick="app.resetViewsOffset();app.addLogs()">search</button>
+	    	<button tabindex="4" type="button" class="btn btn-default btn-sm btn-flat"  onclick="app.reset();app.addLogs()">reset</button></li>
+    	</ul>
+	  </div>
+	  <div class="col-md-10" id="releases">
+		<table class="table">
+		<thead>
+			<tr>
+				<th>time</th>
+				<th>level</th>
+				<th>tag</th>
+				<th>message</th>
+			</tr>
+		</thead>
+		<tbody id="cont">
+		</tbody>
+		</table>
+	  </div>
+	</div>
 </div>
-
-<div id="ab">
-<div class="pure-g">
-    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="app.resetViewsOffset();app.addLogs()">search</button></div>
-    <div class="pure-u-1-4" id="abtag"></div>
-    <div class="pure-u-1-4"><input style="margin-top: 5px;" id="abtags_input" type="text"></div>
-    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="AddLevel()">add level</button><button class="button-ui pure-button" onclick="AddTag()">add tag</button></div>
-    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="app.reset();app.addLogs()">reset</button></div>
-    <div class="pure-u-1-4" id="ablevel"></div>
-    <div class="pure-u-1-4"><input style="margin-top: 5px;" id="filter" type="text"></div>
-    <div class="pure-u-1-4"><button class="button-ui pure-button" onclick="Filter()">filter</button></div>
-</div>
-</div>
-
 
 <span id="navlinks">
 	<a href="#" onclick="scrollToTop()">▲</a>
 </span>
 
 
-<div id="releases">
-<table class="ctable">
-<thead>
-	<tr>
-		<th>time</th>
-		<th>level</th>
-		<th>tag</th>
-		<th>message</th>
-	</tr>
-</thead>
-<tbody id="cont">
-</tbody>
-</table>
-</div>
-
-
-
 <script type="text/template" id="logs-list-template">
 	<% _.each(logs, function(log) { %>
-		<% var filter = document.getElementById("filter").value %>
-		<% if (filter != "") { %> 
-			<% if(log.message.indexOf(filter) == -1) { return } %>
-		<%} %>
 		<% if (log.level != "info") { %>
 			<tr class="release-hit">
 		<% }else { %>
@@ -74,7 +68,7 @@
 		
 		<td>
 			<% var time = new Date(log.time*1000) %>
-			<%= time.toGMTString() %>
+			<%= formatDate(time, "d/M H:m:ss") %>
 		</td>
 		<td>
 			<a class="link-log" onclick="app.addLevel('<%= log.level %>')"><%= log.level %></a>

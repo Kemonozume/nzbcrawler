@@ -35,7 +35,7 @@ func main() {
 
 	conf, err := config.Load("default.ini")
 	if err != nil {
-		logrus.Fatalf("%s error loading config: %s", err.Error())
+		logrus.Fatalf("%s error loading config: %s", TAG, err.Error())
 		return
 	}
 

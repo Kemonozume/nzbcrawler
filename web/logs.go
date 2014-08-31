@@ -11,13 +11,18 @@ import (
 )
 
 type Logs struct {
+	db *gorm.DB
 }
 
-func (l Logs) GetLogs(c web.C, offset int) (by []byte, err error) {
-	db := c.Env["db"].(*gorm.DB)
+func NewLogs(db *gorm.DB) (lo *Logs) {
+	lo = &Logs{}
+	lo.db = db
+	return
+}
 
+func (l *Logs) GetLogs(offset int) (by []byte, err error) {
 	logs := []data.Log{}
-	err = db.Order("id desc").Limit(LIMIT).Offset(offset).Find(&logs).Error
+	err = l.db.Order("id desc").Limit(LIMIT).Offset(offset).Find(&logs).Error
 	if err != nil {
 		return
 	}
@@ -27,7 +32,6 @@ func (l Logs) GetLogs(c web.C, offset int) (by []byte, err error) {
 }
 
 func (l Logs) getLogsWithOptions(c web.C, offset int, options map[string][]string) (by []byte, err error) {
-	db := c.Env["db"].(*gorm.DB)
 
 	var levels []string
 	var tags []string
@@ -77,7 +81,7 @@ func (l Logs) getLogsWithOptions(c web.C, offset int, options map[string][]strin
 
 	query := buffer.String()
 
-	rows, err := db.Raw(query, args...).Rows()
+	rows, err := l.db.Raw(query, args...).Rows()
 	if err != nil {
 		return
 	}

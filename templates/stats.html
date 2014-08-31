@@ -4,26 +4,30 @@
 	<title>stats</title>
 	<link rel="icon" href="assets/img/icon.png" type="image/png" />
 	<link rel="stylesheet" type="text/css" href="assets/css/main.css" />
-	<link rel="stylesheet" type="text/css" href="assets/css/pure-min.css" />
+	<link rel="stylesheet" type="text/css" href="assets/css/bootstrap.css" />
 	<link href='http://fonts.googleapis.com/css?family=Ubuntu:300' rel='stylesheet' type='text/css'>
 
+	<style type="text/css">
+
+	</style>
 </head>
 <body>
-<div class="pure-menu pure-menu-open pure-menu-horizontal">
-    <a href="/" class="pure-menu-heading">nzbcrawler</a>
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+		<a class="navbar-brand" href="/">nzbcrawler</a>
+		<ul class="nav navbar-nav">
+        	<li><a href="/">browse</a></li>
+        	<li><a href="/logs">logs</a></li>
+        	<li class="active"><a href="#">stats</a></li>
+        </ul>
+	</div>
+</nav>
 
-    <ul>
-        <li><a href="/">browse</a></li>
-		<li><a href="/logs">logs</a></li>
-		<li class="pure-menu-selected"><a href="#">stats</a></li>
-    </ul>
-</div>
-
-<div style="margin-right: auto; margin-left: auto; width: 800px;">
-
+<div style="margin-right: auto; margin-left: auto; width: 920px;">
+<a href="/stats/free" class="btn btn-primary btn-sm btn-flat">force gc</a>
 <br>
 Top 10 Hits
-<table class="pure-table">
+<table class="table">
 	<thead>
 	<tr>
 	    <th>name</th>
@@ -43,75 +47,78 @@ Top 10 Hits
 </table>
 <br>
 <br>
-<div style="float: left;margin-right: 20px;"> 
-Top 10 Tags
-<table class="pure-table">
-	<thead>
-	<tr>
-	    <th>name</th>
-	    <th>weight</th>
-	</tr>
-	</thead>
-	<tbody>
-	{{ range .Ta }}
-		<tr>
-			<td>{{ .Value }}</td>
-			<td>{{ .Weight }}</td>
-		</tr>
-	{{ end }}
-	</tbody>
-</table>
+<div class="rows"> 
+	<div class="col-md-2">
+		Top 10 Tags
+		<table class="table">
+			<thead>
+			<tr>
+			    <th>name</th>
+			    <th>weight</th>
+			</tr>
+			</thead>
+			<tbody>
+			{{ range .Ta }}
+				<tr>
+					<td>{{ .Value }}</td>
+					<td>{{ .Weight }}</td>
+				</tr>
+			{{ end }}
+			</tbody>
+		</table>
+	</div>
+	<div class="col-md-5">
+		Count Stats
+		<table class="table">
+			<thead>
+			<tr>
+			    <th># releases</th>
+			    <th># tags</th>
+			    <th># hits</th>
+			</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>{{ .ReleaseCount }}</td>
+					<td>{{ .TagCount }}</td>
+					<td>{{ .HitCount }}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div class="col-md-5">
+		Mem/Cpu Stats
+		<table class="table">
+			<thead>
+			<tr>
+			    <th># threads</th>
+			    <th># memacquired</th>
+			    <th># memused</th>
+			</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>{{ .GoRoutines }}</td>
+					<td>{{ .MemoryAcq }}mb</td>
+					<td>{{ .MemoryUsed }}mb</td>
+				</tr>
+			</tbody>
+		</table>
+		<table class="table">
+			<thead>
+			<tr>
+			    <th># cache items</th>
+			    <th># cache size</th>
+			</thead>
+			<tbody>
+				<tr>
+					<td>{{ .CacheCount }}</td>
+					<td>{{ .CacheMB }}mb</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
 </div>
-Misc
-<table class="pure-table">
-	<thead>
-	<tr>
-	    <th># releases</th>
-	    <th># tags</th>
-	    <th># hits</th>
-	</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td>{{ .ReleaseCount }}</td>
-			<td>{{ .TagCount }}</td>
-			<td>{{ .HitCount }}</td>
-		</tr>
-	</tbody>
-</table>
-</br>
-<table class="pure-table">
-	<thead>
-	<tr>
-	    <th># goroutines</th>
-	    <th># memory acquired</th>
-	    <th># memory used</th>
-	</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td>{{ .GoRoutines }}</td>
-			<td>{{ .MemoryAcq }}mb</td>
-			<td>{{ .MemoryUsed }}mb</td>
-		</tr>
-	</tbody>
-</table>
-
-</br>
-<table class="pure-table">
-	<thead>
-	<tr>
-	    <th># cache items</th>
-	    <th># cache size</th>
-	</thead>
-	<tbody>
-		<tr>
-			<td>{{ .CacheCount }}</td>
-			<td>{{ .CacheMB }}mb</td>
-		</tr>
-	</tbody>
-</table>
-
 </div>
 </body>
 </html>

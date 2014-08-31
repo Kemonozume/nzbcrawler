@@ -1,7 +1,8 @@
 body {
     font-size: 15px;
     font-family: 'Ubuntu', sans-serif;
-    padding: 0px;
+
+    padding-top: 70px; 
 
     background-image: url(../img/background.jpg);
     background-position-x: 0px;
@@ -17,14 +18,22 @@ body {
 
 }
 
+.btn-flat {
+    border-radius: 0px !important;
+    margin-top: 2px !important;
+}
+
+.btn-rem:hover {
+    background-color: rgb(217, 83, 79) !important;
+}
+
 
 #navlinks {
     position: fixed;
-    right: 30px;
-    top: 50px;
+    right: 1px;
+    top: 70px;
     z-index: 2;
     color: white;
-    display: none;
 }
 
 #navlinks a {
@@ -40,23 +49,14 @@ body {
 
 #cloud {
     padding: 10px;
+    position: fixed;
+    top: 40px;
+    left: 220px;
     display: none;
 }
 
 #cloud span:hover{
     border-bottom: 2px solid #6BB6D2;
-}
-
-#releases {
-    position: absolute;
-    overflow: auto;
-    border: none;
-    margin-top: 5px;
-    height: 90%;
-    width: 100%;
-}
-
-#releases::-webkit-scrollbar { 
 }
 
 .ctable {
@@ -104,11 +104,23 @@ body {
     float: left;
     width: 100px;
     height: 100px;
-    overflow: hidden;
 }
 
 .crop-image img {
-    width: 130px;
+    display: block;
+    max-width: 100px;
+    max-height: 100px;
+    width: auto;
+    height: auto;
+}
+
+.crop-image:hover {
+  -webkit-transform: scale(4);
+  -moz-transform: scale(4);
+  -o-transform: scale(4);
+  transform: scale(4);
+  transition: all 0.3s;
+  -webkit-transition: all 0.3s;
 }
 
 .title {
@@ -156,21 +168,4 @@ body {
 
 .links li span:hover {
     border-bottom: 2px solid #6BB6D2;
-}
-
-.button-tag {
-    font-size: 12px !important;
-    background: #E6E6E6 !important;
-}
-
-.button-tag:hover {
-    background: rgb(202, 60, 60) !important; 
-}
-.button-ui {
-    font-size: 12px !important;
-    width: 100px;
-    background: #E6E6E6 !important;
-}
-.button-ui:hover{
-    background: rgb(28, 184, 65) !important;
 }

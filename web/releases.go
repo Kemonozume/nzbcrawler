@@ -11,17 +11,23 @@ import (
 	"github.com/Kemonozume/nzbcrawler/data"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
-	"github.com/zenazn/goji/web"
 )
 
 type Releases struct {
+	db   *gorm.DB
+	conf *config.Config
 }
 
-func (r Releases) GetReleaseWithId(c web.C, id int64) (by []byte, err error) {
-	db := c.Env["db"].(*gorm.DB)
+func NewReleases(db *gorm.DB, conf *config.Config) (rel *Releases) {
+	rel = &Releases{}
+	rel.db = db
+	rel.conf = conf
+	return
+}
 
+func (r *Releases) GetReleaseWithId(id int64) (by []byte, err error) {
 	rel := data.Release{Id: id}
-	err = db.Model(&rel).First(&rel).Related(&rel.Tags, "Tags").Error
+	err = r.db.Model(&rel).First(&rel).Related(&rel.Tags, "Tags").Error
 	if err != nil {
 		return
 	}
@@ -30,21 +36,24 @@ func (r Releases) GetReleaseWithId(c web.C, id int64) (by []byte, err error) {
 	return
 }
 
-func (r Releases) ThankReleaseWithId(c web.C, id int64) ([]byte, error) {
-	conf := c.Env["config"].(*config.Config)
-	db := c.Env["db"].(*gorm.DB)
+func (r *Releases) GetReleaseImageWithId(id int64) (rel data.Release, err error) {
+	rel = data.Release{Id: id}
+	err = r.db.Model(&rel).First(&rel).Error
+	return
+}
 
+func (r *Releases) ThankReleaseWithId(id int64) ([]byte, error) {
 	var rel data.Release
 
-	err := db.Where("id = ?", id).First(&rel).Error
+	err := r.db.Where("id = ?", id).First(&rel).Error
 	if err != nil {
 		return nil, err
 	}
 
 	if rel.Nzb == "" {
 		tc := town.NewClient()
-		tc.User = conf.TownUser
-		tc.Password = conf.TownPassword
+		tc.User = r.conf.TownUser
+		tc.Password = r.conf.TownPassword
 
 		err = tc.Login()
 		if err != nil {
@@ -79,7 +88,7 @@ func (r Releases) ThankReleaseWithId(c web.C, id int64) ([]byte, error) {
 		url := tp.GetNzbUrl()
 		passwd := tp.GetPassword()
 
-		err = db.Model(&rel).First(&rel).UpdateColumns(data.Release{Nzb: url, Password: passwd}).Error
+		err = r.db.Model(&rel).First(&rel).UpdateColumns(data.Release{Nzb: url, Password: passwd}).Error
 		if err != nil {
 			return nil, err
 		}
@@ -105,11 +114,9 @@ func (r Releases) ThankReleaseWithId(c web.C, id int64) ([]byte, error) {
 
 }
 
-func (r Releases) GetReleaseLinkWithId(c web.C, id int64) (url string, err error) {
-	db := c.Env["db"].(*gorm.DB)
-
+func (r *Releases) GetReleaseLinkWithId(id int64) (url string, err error) {
 	rel := data.Release{Id: id}
-	err = db.Model(&rel).First(&rel).UpdateColumn("hits", rel.Hits+1).Error
+	err = r.db.Model(&rel).First(&rel).UpdateColumn("hits", rel.Hits+1).Error
 	if err != nil {
 		return
 	}
@@ -117,11 +124,9 @@ func (r Releases) GetReleaseLinkWithId(c web.C, id int64) (url string, err error
 	return rel.Url, nil
 }
 
-func (r Releases) GetReleaseNzbWithId(c web.C, id int64) (url string, err error) {
-	db := c.Env["db"].(*gorm.DB)
-
+func (r *Releases) GetReleaseNzbWithId(id int64) (url string, err error) {
 	rel := data.Release{Id: id}
-	err = db.Model(&rel).First(&rel).UpdateColumn("hits", rel.Hits+1).Error
+	err = r.db.Model(&rel).First(&rel).UpdateColumn("hits", rel.Hits+1).Error
 	if err != nil {
 		return
 	}
@@ -129,17 +134,15 @@ func (r Releases) GetReleaseNzbWithId(c web.C, id int64) (url string, err error)
 	return rel.Nzb, nil
 }
 
-func (r Releases) GetReleases(c web.C, offset int) (by []byte, err error) {
-	db := c.Env["db"].(*gorm.DB)
-
+func (r *Releases) GetReleases(offset int) (by []byte, err error) {
 	var release []data.Release
-	err = db.Order("time desc").Limit(LIMIT).Offset(offset).Find(&release).Error
+	err = r.db.Order("time desc").Limit(LIMIT).Offset(offset).Find(&release).Error
 	if err != nil {
 		return
 	}
 
 	for i, rel := range release {
-		db.Model(&rel).Related(&rel.Tags, "Tags")
+		r.db.Model(&rel).Related(&rel.Tags, "Tags")
 		release[i] = rel
 	}
 
@@ -148,14 +151,12 @@ func (r Releases) GetReleases(c web.C, offset int) (by []byte, err error) {
 	return
 }
 
-func (r Releases) q(str string) string {
+func (r *Releases) q(str string) string {
 	re := strings.NewReplacer("'", "''")
 	return "'" + re.Replace(str) + "'"
 }
 
-func (r Releases) GetReleasesWithTags(c web.C, offset int, tags []string) (by []byte, err error) {
-	db := c.Env["db"].(*gorm.DB)
-
+func (r *Releases) GetReleasesWithTags(offset int, tags []string) (by []byte, err error) {
 	tags = strings.Split(tags[0], ",")
 
 	var release []data.Release
@@ -180,9 +181,9 @@ func (r Releases) GetReleasesWithTags(c web.C, offset int, tags []string) (by []
 
 	query := buffer.String()
 
-	log.Infof("%s releases with tags query: %s", TAG, query)
+	log.Infof("%s %s", "[sql]", query)
 
-	rows, err := db.Raw(query, args...).Rows()
+	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
 		return
 	}
@@ -193,7 +194,7 @@ func (r Releases) GetReleasesWithTags(c web.C, offset int, tags []string) (by []
 	}
 	rows.Close()
 	for i, rel := range release {
-		db.Model(&rel).First(&rel).Related(&rel.Tags, "Tags")
+		r.db.Model(&rel).First(&rel).Related(&rel.Tags, "Tags")
 		release[i] = rel
 	}
 
@@ -201,9 +202,7 @@ func (r Releases) GetReleasesWithTags(c web.C, offset int, tags []string) (by []
 	return
 }
 
-func (r Releases) GetReleasesWithName(c web.C, offset int, name string) (by []byte, err error) {
-	db := c.Env["db"].(*gorm.DB)
-
+func (r *Releases) GetReleasesWithName(offset int, name string) (by []byte, err error) {
 	var buffer bytes.Buffer
 	var release []data.Release
 
@@ -213,9 +212,9 @@ func (r Releases) GetReleasesWithName(c web.C, offset int, name string) (by []by
 	buffer.WriteString(strconv.Itoa(offset))
 
 	query := buffer.String()
-	log.Infof("%s releases with name query: %s", TAG, query)
+	log.Infof("%s %s", "[sql]", query)
 
-	rows, err := db.Raw(query).Rows()
+	rows, err := r.db.Raw(query).Rows()
 	if err != nil {
 		return
 	}
@@ -227,11 +226,11 @@ func (r Releases) GetReleasesWithName(c web.C, offset int, name string) (by []by
 	rows.Close()
 
 	for i, rel := range release {
-		err = db.Where("id = ?", rel.Id).First(&rel).Error
+		err = r.db.Where("id = ?", rel.Id).First(&rel).Error
 		if err != nil {
 			return
 		}
-		err = db.Model(&rel).Related(&rel.Tags, "Tags").Error
+		err = r.db.Model(&rel).Related(&rel.Tags, "Tags").Error
 		if err != nil {
 			return
 		}

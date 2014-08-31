@@ -8,13 +8,15 @@ $.getJSON("/db/tags/", function(data2) {
     $("#cloudlist").append(_.template($('#tags-list-template').html(), {tags: data2}));
 })
 
+$("#abname_input").focus();
+
 
 app.activateScrollBinding()
 app.buildUI()
 app.addReleases()
 
 function getNZB(view, id) {
-    $.get("/db/event/"+id+"/thank", function( data ) {
+    $.get("/db/release/"+id+"/thank", function( data ) {
       var li = view.parentNode
       $(li).empty()
       $(li).append("<a target='_blank' href='/db/event/"+data.id+"/nzb'>nzb download</a>")
@@ -22,25 +24,6 @@ function getNZB(view, id) {
     });
 }
 
-function toggleActionbar() {
-    if (document.getElementById("toggleaction").innerText == "▼") {
-        
-        $("#releases").animate({
-            height: "85%" 
-        }, 300, function() {
-            $("#ab").show("fast")
-        })
-        document.getElementById("toggleaction").innerText = "▲"
-    }else {
-        $("#ab").hide("fast", function() {
-            $("#releases").animate({
-                height: "90%" 
-            }, 300)
-        })
-        document.getElementById("toggleaction").innerText = "▼"
-        
-    }
-}
 
 function toggleCloud() {
     if($("#cloud").is(":visible")) {
@@ -52,15 +35,29 @@ function toggleCloud() {
     }
 }
 
-function AddTag() {
-    app.addTag(document.getElementById('abtags_input').value)
-    document.getElementById('abtags_input').value = ""
+$("#abname_input").keypress(function(e) {
+    if (e.which == 13) {
+        app.addName(document.getElementById('abname_input').value);
+        document.getElementById('abname_input').value = "";
+    }
+})
+
+$("#abtags_input").keypress(function(e) {
+    if (e.which == 13) {
+        app.addTag(document.getElementById('abtags_input').value);
+        document.getElementById('abtags_input').value = "";
+    }
+})
+
+function ArrayHas(arr, tag) {
+    for (ta in arr) {
+        if(arr[ta].value == tag) {
+            return true;
+        }
+    }
+    return false;
 }
 
-function AddName() {
-    app.addName(document.getElementById('abtags_input').value)
-    document.getElementById('abtags_input').value = ""
-}
 
 function scrollToTop() {
     document.getElementById("releases").scrollTop = 0

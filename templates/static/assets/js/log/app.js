@@ -59,14 +59,10 @@ var LogObj = {
 
 	activateScrollBinding: function() {
 		var that = this;
-		$("#releases").scroll(function() {
-			if ($("#releases").scrollTop() > 300) {
-				$("#navlinks").show()
-			}else {
-				$("#navlinks").hide()
-			}
+		var bod = document.getElementsByTagName("body")[0];
 
-			if($("#releases").scrollTop() + $("#releases").height() == document.getElementById("releases").scrollHeight) {
+		$(window).scroll(function() {
+			if($(window).scrollTop() + $(window).height() == bod.scrollHeight) {
 				that.addLogs();
 			}
 		})
@@ -74,18 +70,18 @@ var LogObj = {
 
 	buildUI: function() {
 		$("#ablevel").empty()
-		$("#abtag").empty()
+		$("#abtags").empty()
 		var str = ""
 		for(var i = 0; i < this.tag.length; i++) {
-			str += "<button class='button-tag pure-button' onclick='app.removeTag(\""+this.tag[i]+"\")'>"
+			str += "<button class='btn btn-default btn-xs btn-flat btn-rem' onclick='app.removeTag(\""+this.tag[i]+"\")'>"
 			str += this.tag[i]
 			str +="</button>"
 		}
-		$("#abtag").append(str)
+		$("#abtags").append(str)
 
 		var str2 = ""
 		for(var i = 0; i < this.level.length; i++) {
-			str2 += "<button class='button-tag pure-button' onclick='app.removeLevel(\""+this.level[i]+"\")'>"
+			str2 += "<button class='btn btn-default btn-xs btn-flat btn-rem' onclick='app.removeLevel(\""+this.level[i]+"\")'>"
 			str2 += this.level[i]
 			str2 +="</button>"
 		}

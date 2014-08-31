@@ -1,3 +1,8 @@
+.link-log {
+	color: #333333;
+	text-decoration: none !important;
+}
+
 .link-log:hover {
 	border-bottom: 2px solid #6BB6D2;
 }

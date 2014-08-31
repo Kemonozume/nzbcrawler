@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
 	"runtime"
+	"runtime/debug"
 
 	"github.com/Kemonozume/nzbcrawler/config"
 	"github.com/Kemonozume/nzbcrawler/data"
@@ -33,6 +33,19 @@ type Server struct {
 	Cache  *Cache
 }
 
+type statwrap struct {
+	Rel          []data.Release
+	Ta           []data.Tag
+	ReleaseCount int
+	TagCount     int
+	HitCount     int
+	MemoryAcq    int
+	MemoryUsed   int
+	GoRoutines   int
+	CacheMB      int
+	CacheCount   int
+}
+
 const (
 	TAG          = "[web]"
 	LIMIT        = 100
@@ -42,12 +55,37 @@ const (
 )
 
 var i404 []byte
+var stats *statwrap
+var defaultime time.Time
+var cl chan bool
 
 func (s *Server) Close() {
 	graceful.Shutdown()
+	cl <- true
+}
+
+func (s *Server) watcher() {
+	for cl != nil {
+		select {
+		case <-cl:
+			cl = nil
+			break
+		case <-time.Tick(time.Second * 3):
+			err := RefreshStats(s.Cache, s.DB)
+			if err != nil {
+				log.Error(err.Error())
+			}
+		}
+	}
 }
 
 func (s *Server) Init() {
+	cl = make(chan bool)
+
+	i404, err := ioutil.ReadFile("templates/static/assets/img/404.jpg")
+	if err != nil {
+		panic(err)
+	}
 
 	//cookie store
 	s.Store = sessions.NewCookieStore([]byte(s.Config.Secret))
@@ -59,7 +97,12 @@ func (s *Server) Init() {
 
 	s.Cache = NewCache(s.Config.CacheSize*1024*1024, s.Config.CacheFree*1024*1024, true)
 
-	i404, _ = ioutil.ReadFile("templates/static/assets/img/404.jpg")
+	stats = &statwrap{}
+
+	go s.watcher()
+
+	rc := NewReleasesController(s.DB, s.Config, s.Cache)
+	lc := NewLogsController(s.DB)
 
 	goji.Use(gzip.GzipHandler)
 	goji.Use(s.ServerMiddleWare)
@@ -77,37 +120,22 @@ func (s *Server) Init() {
 	goji.Get("/logs", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "templates/logs.html")
 	})
-	goji.Get("/stats", GetStats)
+	goji.Get("/stats", s.GetStats)
+	goji.Get("/stats/free", s.Force)
 
-	goji.Get("/db/event/:id/", GetRelease)
-	goji.Get("/db/event/:id/link", GetReleaseLink)
-	goji.Get("/db/event/:id/nzb", GetReleaseNzb)
-	goji.Get("/db/event/:id/image", GetReleaseImage)
-	goji.Get("/db/event/:id/thank", ThankRelease)
-	goji.Get("/db/events/", GetReleases)
-	goji.Get("/db/tags/", GetTags)
-	goji.Get("/db/logs/", GetLogs)
+	goji.Get("/db/release/:id/", rc.GetRelease)
+	goji.Get("/db/release/:id/link", rc.GetReleaseLink)
+	goji.Get("/db/release/:id/nzb", rc.GetReleaseNzb)
+	goji.Get("/db/release/:id/image", rc.GetReleaseImage)
+	goji.Get("/db/release/:id/thank", rc.ThankRelease)
+	goji.Get("/db/releases/", rc.GetReleases)
+	goji.Get("/db/tags/", s.GetTags)
+	goji.Get("/db/logs/", lc.GetLogs)
 
 	goji.Get("/login", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "templates/login.html")
 	})
-	goji.Get("/login/:key", func(c web.C, w http.ResponseWriter, r *http.Request) {
-		store := c.Env["store"].(*sessions.CookieStore)
-		conf := c.Env["config"].(*config.Config)
-		key := c.URLParams["key"]
-
-		if key == conf.Key {
-			session, _ := store.Get(r, "top-kek")
-			session.Values["logged_in"] = true
-			session.Values["ip"] = strings.Split(r.RemoteAddr, ":")[0]
-			session.Save(r, w)
-			log.Warningf("%s %s managed to log in", TAG, r.RemoteAddr)
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		} else {
-			log.Warningf("%s %s failed to log in with key %s", TAG, r.RemoteAddr, key)
-			http.Error(w, "nope", http.StatusForbidden)
-		}
-	})
+	goji.Get("/login/:key", s.Login)
 
 	goji.NotFound(NotFound)
 
@@ -115,37 +143,42 @@ func (s *Server) Init() {
 
 	addr := fmt.Sprintf("%s:%s", s.Config.Host, s.Config.Port)
 	log.Infof("%s listening on %s", TAG, addr)
-	err := graceful.ListenAndServe(addr, goji.DefaultMux)
+
+	se := &graceful.Server{
+		Addr:           addr,
+		Handler:        goji.DefaultMux,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	err = se.ListenAndServe()
 	if err != nil {
 		panic(err)
 	}
+
 	graceful.Wait()
 	log.Infof("%s closing", TAG)
 }
 
-func HandleError(w http.ResponseWriter, r *http.Request, err error, details ...interface{}) bool {
-	if err != nil {
-		if len(details) > 2 {
-			log.Errorf("%s %s | details: %s | %s", TAG, err.Error(), details[2].(string), r.URL.String())
-		} else {
-			log.Errorf("%s %s | %s", TAG, err.Error(), r.URL.String())
-		}
-
-		message := "Umm... have you tried turning it off and on again?"
-		code := http.StatusInternalServerError
-
-		if len(details) > 0 {
-			message = details[0].(string)
-		}
-		if len(details) > 1 {
-			code = details[1].(int)
-		}
-
-		http.Error(w, message, code)
-		panic(err)
-		return true
+func HandleError(w http.ResponseWriter, r *http.Request, err error, details ...interface{}) {
+	if len(details) > 2 {
+		log.Errorf("%s %s | details: %s | %s", TAG, err.Error(), details[2].(string), r.URL.String())
+	} else {
+		log.Errorf("%s %s | %s", TAG, err.Error(), r.URL.String())
 	}
-	return false
+
+	message := "Umm... have you tried turning it off and on again?"
+	code := http.StatusInternalServerError
+
+	if len(details) > 0 {
+		message = details[0].(string)
+	}
+	if len(details) > 1 {
+		code = details[1].(int)
+	}
+
+	http.Error(w, message, code)
 }
 
 func HandleRecovery() {
@@ -159,6 +192,21 @@ func LogTime(url string, start time.Time) {
 		return
 	}
 	log.Infof("%s GET %s in %s", TAG, url, time.Since(start))
+}
+
+func (s *Server) Login(c web.C, w http.ResponseWriter, r *http.Request) {
+	key := c.URLParams["key"]
+	if key == s.Config.Key {
+		session, _ := s.Store.Get(r, "top-kek")
+		session.Values["logged_in"] = true
+		session.Values["ip"] = strings.Split(r.RemoteAddr, ":")[0]
+		session.Save(r, w)
+		log.Warningf("%s %s managed to log in", TAG, r.RemoteAddr)
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	} else {
+		log.Warningf("%s %s failed to log in with key %s", TAG, r.RemoteAddr, key)
+		http.Error(w, "nope", http.StatusForbidden)
+	}
 }
 
 //adds auth handler
@@ -176,14 +224,14 @@ func (s *Server) AuthMiddleWare(c *web.C, h http.Handler) http.Handler {
 
 		if needs_auth {
 			logged_in := false
-			sess, err := c.Env["store"].(*sessions.CookieStore).Get(r, "top-kek")
+			sess, err := s.Store.Get(r, "top-kek")
 			if err != nil {
 				log.Errorf("%s %s", TAG, err.Error())
 			} else if sess != nil && sess.Values["logged_in"] != nil && sess.Values["ip"] != nil {
 				if sess.Values["logged_in"].(bool) && strings.Split(r.RemoteAddr, ":")[0] == sess.Values["ip"].(string) {
 					logged_in = true
 				}
-				c.Env["store"].(*sessions.CookieStore).Save(r, w, sess)
+				s.Store.Save(r, w, sess)
 			}
 			if !logged_in {
 				http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
@@ -199,17 +247,11 @@ func (s *Server) AuthMiddleWare(c *web.C, h http.Handler) http.Handler {
 //adds database and maybe other things later to the middlewarestack
 func (s *Server) ServerMiddleWare(c *web.C, h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		defer LogTime(r.URL.String(), time.Now())
+		now := time.Now()
 		defer context.Clear(r)
 		defer HandleRecovery()
-
-		c.Env["store"] = s.Store
-		c.Env["db"] = s.DB
-		c.Env["config"] = s.Config
-		c.Env["releases"] = Releases{}
-		c.Env["logs"] = Logs{}
-		c.Env["cache"] = s.Cache
 		h.ServeHTTP(w, r)
+		LogTime(r.URL.String(), now)
 	}
 	return http.HandlerFunc(fn)
 }
@@ -219,199 +261,32 @@ func NotFound(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Umm... have you tried turning it off and on again?", 404)
 }
 
-func GetRelease(c web.C, w http.ResponseWriter, r *http.Request) {
-	releases := c.Env["releases"].(Releases)
-	idstr := c.URLParams["id"]
-
-	id, err := strconv.Atoi(idstr)
-	HandleError(w, r, err, "id parsing failed", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	by, err := releases.GetReleaseWithId(c, int64(id))
-	HandleError(w, r, err, "failed to get release", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	w.Header().Add("content-type", "application/json")
-	w.Write(by)
-}
-
-func ThankRelease(c web.C, w http.ResponseWriter, r *http.Request) {
-	releases := c.Env["releases"].(Releases)
-	idstr := c.URLParams["id"]
-
-	id, err := strconv.Atoi(idstr)
-	HandleError(w, r, err, "id parsing failed", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	by, err := releases.ThankReleaseWithId(c, int64(id))
-	HandleError(w, r, err, "couldn't thank the release")
-
-	w.Header().Add("content-type", "application/json")
-	w.Write(by)
-
-}
-
-func GetReleaseLink(c web.C, w http.ResponseWriter, r *http.Request) {
-	releases := c.Env["releases"].(Releases)
-	idstr := c.URLParams["id"]
-
-	id, err := strconv.Atoi(idstr)
-	HandleError(w, r, err, "id parsing failed", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	url, err := releases.GetReleaseLinkWithId(c, int64(id))
-	HandleError(w, r, err, "link not found", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-}
-
-func GetReleaseImage(c web.C, w http.ResponseWriter, r *http.Request) {
-	db := c.Env["db"].(*gorm.DB)
-	cache := c.Env["cache"].(*Cache)
-
-	idstr := c.URLParams["id"]
-
-	id, err := strconv.Atoi(idstr)
-	HandleError(w, r, err, "id parsing failed", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	rel := data.Release{Id: int64(id)}
-	err = db.Model(&rel).First(&rel).Error
-	HandleError(w, r, err, "release not found", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	w.Header().Add("Cache-Control", "max-age=1296000")
-	if rel.Image == "" {
-		w.Write(i404)
-	} else {
-		file := cache.Get(rel.Image)
-		if file == nil {
-			ok := cache.Add(rel.Image)
-			if ok {
-				file := cache.Get(rel.Image)
-				w.Write(file)
-			} else {
-				w.Write(i404)
-			}
-
-		} else {
-			w.Write(file)
-		}
-	}
-
-}
-
-func GetReleaseNzb(c web.C, w http.ResponseWriter, r *http.Request) {
-	releases := c.Env["releases"].(Releases)
-	idstr := c.URLParams["id"]
-
-	id, err := strconv.Atoi(idstr)
-	HandleError(w, r, err, "id parsing failed", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	url, err := releases.GetReleaseNzbWithId(c, int64(id))
-	HandleError(w, r, err, "link not found", http.StatusBadRequest, fmt.Sprintf("id = %s", idstr))
-
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-}
-
-func GetReleases(c web.C, w http.ResponseWriter, r *http.Request) {
-	releases := c.Env["releases"].(Releases)
-
-	offset := 0
-	querymap := r.URL.Query()
-	offsetmay := querymap["offset"]
-	if len(offsetmay) > 0 {
-		tmp, err := strconv.Atoi(offsetmay[0])
-		HandleError(w, r, err, "bad offset", http.StatusBadRequest, fmt.Sprintf("offset = %s", offsetmay[0]))
-		offset = tmp
-	}
-
-	tags := querymap["tags"]
-	name := querymap["name"]
-	if len(tags) > 0 {
-		by, err := releases.GetReleasesWithTags(c, offset, tags)
-		HandleError(w, r, err)
-		w.Header().Add("content-type", "application/json")
-		w.Write(by)
-	} else if len(name) > 0 {
-		by, err := releases.GetReleasesWithName(c, offset, name[0])
-		HandleError(w, r, err)
-		w.Header().Add("content-type", "application/json")
-		w.Write(by)
-	} else {
-		by, err := releases.GetReleases(c, offset)
-		HandleError(w, r, err)
-		w.Header().Add("content-type", "application/json")
-		w.Write(by)
-	}
-
-}
-
-func GetLogs(c web.C, w http.ResponseWriter, r *http.Request) {
-	logs := c.Env["logs"].(Logs)
-
-	offset := 0
-	querymap := r.URL.Query()
-	offsetmay := querymap["offset"]
-	if len(offsetmay) > 0 {
-		tmp, err := strconv.Atoi(offsetmay[0])
-		HandleError(w, r, err, "bad offset", http.StatusBadRequest, fmt.Sprintf("offset = %s", offsetmay[0]))
-		offset = tmp
-	}
-
-	tags := querymap["tag"]
-	levels := querymap["level"]
-
-	if len(tags) > 0 {
-		tags = strings.Split(tags[0], ",")
-	}
-
-	if len(levels) > 0 {
-		levels = strings.Split(levels[0], ",")
-	}
-
-	options := make(map[string][]string)
-	options["tags"] = tags
-	options["levels"] = levels
-
-	by, err := logs.getLogsWithOptions(c, offset, options)
-	HandleError(w, r, err)
-
-	w.Header().Add("content-type", "application/json")
-	w.Write(by)
-}
-
-func GetTags(c web.C, w http.ResponseWriter, r *http.Request) {
-	db := c.Env["db"].(*gorm.DB)
-
+func (s *Server) GetTags(c web.C, w http.ResponseWriter, r *http.Request) {
 	tags := []data.Tag{}
-	err := db.Order("weight desc").Find(&tags).Error
-	HandleError(w, r, err, "database request failed")
+	err := s.DB.Order("weight desc").Find(&tags).Error
+	if err != nil {
+		HandleError(w, r, err, "database request failed")
+		return
+	}
 
 	by, err := json.Marshal(tags)
-	HandleError(w, r, err, "json marshal failed")
+	if err != nil {
+		HandleError(w, r, err, "json marshal failed")
+		return
+	}
 
 	w.Header().Add("content-type", "application/json")
 	w.Write(by)
 }
 
-type statwrap struct {
-	Rel          []data.Release
-	Ta           []data.Tag
-	ReleaseCount int
-	TagCount     int
-	HitCount     int
-	MemoryAcq    int
-	MemoryUsed   int
-	GoRoutines   int
-	CacheMB      int
-	CacheCount   int
-}
-
-func GetStats(c web.C, w http.ResponseWriter, r *http.Request) {
-	db := c.Env["db"].(*gorm.DB)
-	cache := c.Env["cache"].(*Cache)
-
+func RefreshStats(cache *Cache, db *gorm.DB) (err error) {
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
-	stats := statwrap{}
 
 	acq := m.Sys / 1024 / 1024
 	used := m.Alloc / 1024 / 1024
+
+	m = nil
 
 	stats.GoRoutines = runtime.NumGoroutine()
 	stats.MemoryAcq = int(acq)
@@ -420,11 +295,18 @@ func GetStats(c web.C, w http.ResponseWriter, r *http.Request) {
 	stats.CacheMB = cache.GetSizeInMb()
 	stats.CacheCount = cache.GetSize()
 
-	err := db.Order("weight desc").Limit(10).Find(&stats.Ta).Error
-	HandleError(w, r, err, "database request failed")
+	stats.Rel = nil
+	stats.Ta = nil
+
+	err = db.Order("weight desc").Limit(10).Find(&stats.Ta).Error
+	if err != nil {
+		return
+	}
 
 	err = db.Order("hits desc").Limit(10).Find(&stats.Rel).Error
-	HandleError(w, r, err, "database request failed")
+	if err != nil {
+		return
+	}
 
 	row := db.Raw(HITCOUNT).Row()
 	row.Scan(&stats.HitCount)
@@ -434,7 +316,24 @@ func GetStats(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	row = db.Raw(RELEASECOUNT).Row()
 	row.Scan(&stats.ReleaseCount)
+	return
+}
 
-	tmp, err := template.ParseFiles("templates/stats.html")
-	tmp.Execute(w, stats)
+func (s *Server) GetStats(c web.C, w http.ResponseWriter, r *http.Request) {
+	bla := *stats
+	t, err := template.ParseFiles("templates/stats.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		err = t.Execute(w, bla)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+func (s *Server) Force(c web.C, w http.ResponseWriter, r *http.Request) {
+	runtime.GC()
+	debug.FreeOSMemory()
+	http.Redirect(w, r, "/stats", 302)
 }

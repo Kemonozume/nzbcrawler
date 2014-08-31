@@ -35,7 +35,8 @@ func (d DBLog) Write(p []byte) (int, error) {
 
 	err := json.Unmarshal(p, &logtmp)
 	if err != nil {
-		log.Printf(err.Error())
+		log.Println(err.Error())
+		return len(p), nil
 	}
 
 	log.Printf("%s %s", logtmp.Level, logtmp.Msg)
