@@ -78,8 +78,6 @@ func (s *Server) watcher() {
 			if err != nil {
 				log.Error(err.Error())
 			}
-		default:
-			time.Sleep(1 * time.Second)
 		}
 	}
 }
