@@ -2,9 +2,11 @@ package web
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/pprof"
 	"strings"
 	"text/template"
 	"time"
@@ -54,6 +56,7 @@ const (
 	RELEASECOUNT = "SELECT COUNT(*) FROM releases"
 )
 
+var webdebug = flag.Bool("webdebug", false, "enables or disabls webdebug")
 var i404 []byte
 var stats *statwrap
 var defaultime time.Time
@@ -75,6 +78,8 @@ func (s *Server) watcher() {
 			if err != nil {
 				log.Error(err.Error())
 			}
+		default:
+			time.Sleep(1 * time.Second)
 		}
 	}
 }
@@ -136,6 +141,17 @@ func (s *Server) Init() {
 		http.ServeFile(w, r, "templates/login.html")
 	})
 	goji.Get("/login/:key", s.Login)
+
+	if *webdebug {
+		goji.Handle("/debug/pprof/", pprof.Index)
+		goji.Handle("/debug/pprof/cmdline", pprof.Cmdline)
+		goji.Handle("/debug/pprof/profile", pprof.Profile)
+		goji.Handle("/debug/pprof/symbol", pprof.Symbol)
+		goji.Handle("/debug/pprof/block", pprof.Handler("block").ServeHTTP)
+		goji.Handle("/debug/pprof/heap", pprof.Handler("heap").ServeHTTP)
+		goji.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine").ServeHTTP)
+		goji.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate").ServeHTTP)
+	}
 
 	goji.NotFound(NotFound)
 
@@ -217,7 +233,7 @@ func (s *Server) AuthMiddleWare(c *web.C, h http.Handler) http.Handler {
 			needs_auth = true
 		} else {
 			str := r.URL.Path[1:6]
-			if str != "login" && str != "asset" {
+			if str != "login" && str != "asset" && str != "debug" {
 				needs_auth = true
 			}
 		}

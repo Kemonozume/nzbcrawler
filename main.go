@@ -1,10 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/pprof"
 	"syscall"
 	"time"
 
@@ -16,7 +18,6 @@ import (
 	"github.com/Kemonozume/nzbcrawler/web"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,7 +29,21 @@ func (DevNull) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+var cpuprofile = flag.Bool("cprof", false, "enables or disables cpu profiling")
+var memprofile = flag.Bool("mprof", false, "enables or disables memory profiling")
+
 func main() {
+
+	flag.Parse()
+
+	if *cpuprofile {
+		f, err := os.Create("cpu.prof")
+		if err != nil {
+			panic(err)
+		}
+		pprof.StartCPUProfile(f)
+	}
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.Printf("%s starting nzbcrawler", TAG)
 	logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -52,7 +67,7 @@ func main() {
 	dbmy.CreateTable(data.Log{})
 	dbmy.CreateTable(data.Release{})
 	dbmy.CreateTable(data.Tag{})
-	dbmy.DB()
+
 	dbmy.DB().Ping()
 	dbmy.DB().SetMaxIdleConns(10)
 	dbmy.DB().SetMaxOpenConns(100)
@@ -79,6 +94,14 @@ func main() {
 	go func(s *web.Server) {
 		for sig := range c {
 			logrus.Infof("%s captured %v, starting to shutdown", TAG, sig)
+			if *memprofile {
+				f, err := os.Create("mem.prof")
+				if err != nil {
+					log.Fatal(err)
+				}
+				pprof.WriteHeapProfile(f)
+				f.Close()
+			}
 			s.Close()
 		}
 	}(&server)
@@ -89,5 +112,6 @@ func main() {
 	time.Sleep(time.Second * 1)
 	dbmy.Close()
 	log.Printf("%s shutdown finished\n", TAG)
+	pprof.StopCPUProfile()
 	os.Exit(1)
 }

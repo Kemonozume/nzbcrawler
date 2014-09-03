@@ -193,8 +193,15 @@ func (r *Releases) GetReleasesWithTags(offset int, tags []string) (by []byte, er
 		release = append(release, rel)
 	}
 	rows.Close()
+
+	r.db.Begin()
 	for i, rel := range release {
-		r.db.Model(&rel).First(&rel).Related(&rel.Tags, "Tags")
+		if r.db.Model(&rel).First(&rel).Error != nil {
+			return by, r.db.Model(&rel).First(&rel).Error
+		}
+		if r.db.Model(&rel).Related(&rel.Tags, "Tags").Error != nil {
+			return by, r.db.Model(&rel).First(&rel).Error
+		}
 		release[i] = rel
 	}
 

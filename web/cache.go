@@ -1,15 +1,12 @@
 package web
 
 import (
-	"bytes"
-	"image/jpeg"
-	"image/png"
+	"io/ioutil"
 	"net/http"
 	"unsafe"
 
 	"runtime"
 	"runtime/debug"
-	"strings"
 	"sync"
 	"time"
 
@@ -84,37 +81,15 @@ func (c *Cache) Add(url string) (success bool) {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
 
-	buf := new(bytes.Buffer)
-
-	if strings.Contains(url, "jpg") || strings.Contains(url, "jpeg") {
-		img, err := jpeg.Decode(resp.Body)
-		if err != nil {
-			log.Errorf("%s %s", TAG, err.Error())
-			return false
-		}
-		err = jpeg.Encode(buf, img, nil)
-		if err != nil {
-			log.Errorf("%s %s", TAG, err.Error())
-			return false
-		}
-
-	} else if strings.Contains(url, "png") {
-		img, err := png.Decode(resp.Body)
-		if err != nil {
-			log.Errorf("%s %s", TAG, err.Error())
-			return false
-		}
-		err = jpeg.Encode(buf, img, nil)
-		if err != nil {
-			log.Errorf("%s %s", TAG, err.Error())
-			return false
-		}
+	by, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return false
 	}
 
-	file := buf.Bytes()
-	size := len(file)
+	file := by
+	size := len(by)
 
 	//check if the cache is full
 	if c.size+size > c.sizemax {
