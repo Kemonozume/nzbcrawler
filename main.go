@@ -31,6 +31,7 @@ func (DevNull) Write(p []byte) (int, error) {
 
 var cpuprofile = flag.Bool("cprof", false, "enables or disables cpu profiling")
 var memprofile = flag.Bool("mprof", false, "enables or disables memory profiling")
+var cpucount = flag.Int("threads", 1, "number of threads to use")
 
 func main() {
 
@@ -44,7 +45,7 @@ func main() {
 		pprof.StartCPUProfile(f)
 	}
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(*cpucount)
 	log.Printf("%s starting nzbcrawler", TAG)
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 
