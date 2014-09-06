@@ -59,10 +59,12 @@ func (r *Runner) Start(ex chan bool) {
 	for _, man := range r.Manager {
 		go man.Start()
 	}
+
+	ticker := time.NewTicker(r.Timeout)
 	log.Infof("%s timeout is %s", TAG, r.Timeout)
-	for ex != nil {
+	for {
 		select {
-		case <-time.Tick(r.Timeout):
+		case <-ticker.C:
 			log.Infof("%s tick crawler", TAG)
 			for _, man := range r.Manager {
 				go man.Start()
@@ -74,7 +76,8 @@ func (r *Runner) Start(ex chan bool) {
 			for _, man := range r.Manager {
 				man.SetEnd(true)
 			}
-			ex = nil
+			ticker.Stop()
+			return
 		}
 	}
 }

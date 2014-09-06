@@ -24,6 +24,12 @@ type Cache struct {
 	mutex      sync.RWMutex
 	autodelete bool
 	isRunning  bool
+	Requests   chan CacheRequest
+}
+
+type CacheRequest struct {
+	Url      string
+	Response chan []byte
 }
 
 type CacheItem struct {
@@ -40,6 +46,13 @@ func (c *CacheItem) SetNil() {
 	c.Data = nil
 }
 
+func NewRequest(url string) CacheRequest {
+	return CacheRequest{
+		Url:      url,
+		Response: make(chan []byte),
+	}
+}
+
 func NewCache(cachesize int, sizefree int, autodelete bool) *Cache {
 	c := &Cache{}
 	c.sizemax = cachesize
@@ -48,7 +61,38 @@ func NewCache(cachesize int, sizefree int, autodelete bool) *Cache {
 	c.cache = make(map[string]*CacheItem)
 	c.isRunning = false
 	c.size = cacheSize
+	c.Requests = make(chan CacheRequest, 8)
 	return c
+}
+
+func (c *Cache) worker(requests <-chan CacheRequest) {
+	for req := range requests {
+		file := c.get(req.Url)
+		if file == nil {
+			ok := c.add(req.Url)
+			if ok {
+				file := c.get(req.Url)
+				req.Response <- file
+			} else {
+				req.Response <- i404
+			}
+
+		} else {
+			req.Response <- file
+		}
+	}
+
+}
+
+func (c *Cache) Stop() {
+	close(c.Requests)
+}
+
+func (c *Cache) Start() {
+	go c.worker(c.Requests)
+	go c.worker(c.Requests)
+	go c.worker(c.Requests)
+	go c.worker(c.Requests)
 }
 
 func (c *Cache) GetSizeInMb() int {
@@ -59,7 +103,7 @@ func (c *Cache) GetSize() int {
 	return len(c.cache)
 }
 
-func (c *Cache) Add(url string) (success bool) {
+func (c *Cache) add(url string) (success bool) {
 	//check if element exists
 	success = false
 	ok := c.exists(url)
@@ -109,7 +153,7 @@ func (c *Cache) Add(url string) (success bool) {
 	return
 }
 
-func (c *Cache) Get(url string) []byte {
+func (c *Cache) get(url string) []byte {
 	ok := c.exists(url)
 	if !ok {
 		return nil
@@ -125,7 +169,7 @@ func (c *Cache) Get(url string) []byte {
 	return nil
 }
 
-func (c *Cache) Remove(url string) {
+func (c *Cache) remove(url string) {
 	c.mutex.Lock()
 	val, ok := c.cache[url]
 	if ok {
@@ -155,7 +199,7 @@ func (c *Cache) freeMemory() {
 				if value.AccessCount <= low {
 					//5 minute immunity to protect freshly added files
 					if int64(start.Sub(value.Added)) >= sec20 || ignoreimmunity {
-						c.Remove(key)
+						c.remove(key)
 					}
 				}
 			} else {

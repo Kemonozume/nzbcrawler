@@ -18,12 +18,13 @@ import (
 	"github.com/Kemonozume/nzbcrawler/data"
 	"github.com/gorilla/sessions"
 
+	"github.com/braintree/manners"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
 	"github.com/lidashuang/goji_gzip"
 	log "github.com/sirupsen/logrus"
 	"github.com/zenazn/goji"
-	"github.com/zenazn/goji/graceful"
+
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
 )
@@ -61,19 +62,22 @@ var i404 []byte
 var stats *statwrap
 var defaultime time.Time
 var cl chan bool
+var serv *manners.GracefulServer
 
 func (s *Server) Close() {
-	graceful.Shutdown()
+	serv.Shutdown <- true
 	cl <- true
+	s.Cache.Stop()
 }
 
 func (s *Server) watcher() {
-	for cl != nil {
+	ticker := time.NewTicker(3 * time.Second)
+	for {
 		select {
 		case <-cl:
-			cl = nil
-			break
-		case <-time.Tick(time.Second * 3):
+			ticker.Stop()
+			return
+		case <-ticker.C:
 			err := RefreshStats(s.Cache, s.DB)
 			if err != nil {
 				log.Error(err.Error())
@@ -99,6 +103,7 @@ func (s *Server) Init() {
 	}
 
 	s.Cache = NewCache(s.Config.CacheSize*1024*1024, s.Config.CacheFree*1024*1024, true)
+	s.Cache.Start()
 
 	stats = &statwrap{}
 
@@ -158,7 +163,8 @@ func (s *Server) Init() {
 	addr := fmt.Sprintf("%s:%s", s.Config.Host, s.Config.Port)
 	log.Infof("%s listening on %s", TAG, addr)
 
-	se := &graceful.Server{
+	serv = manners.NewServer()
+	serv.InnerServer = http.Server{
 		Addr:           addr,
 		Handler:        goji.DefaultMux,
 		ReadTimeout:    10 * time.Second,
@@ -166,12 +172,11 @@ func (s *Server) Init() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	err = se.ListenAndServe()
+	err = serv.ListenAndServe(addr, goji.DefaultMux)
 	if err != nil {
 		panic(err)
 	}
 
-	graceful.Wait()
 	log.Infof("%s closing", TAG)
 }
 
@@ -330,6 +335,7 @@ func RefreshStats(cache *Cache, db *gorm.DB) (err error) {
 
 	row = db.Raw(RELEASECOUNT).Row()
 	row.Scan(&stats.ReleaseCount)
+
 	return
 }
 

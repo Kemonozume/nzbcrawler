@@ -98,19 +98,10 @@ func (rc *ReleasesController) GetReleaseImage(c web.C, w http.ResponseWriter, r 
 	if rel.Image == "" {
 		w.Write(i404)
 	} else {
-		file := rc.cache.Get(rel.Image)
-		if file == nil {
-			ok := rc.cache.Add(rel.Image)
-			if ok {
-				file := rc.cache.Get(rel.Image)
-				w.Write(file)
-			} else {
-				w.Write(i404)
-			}
-
-		} else {
-			w.Write(file)
-		}
+		req := NewRequest(rel.Image)
+		rc.cache.Requests <- req
+		w.Write(<-req.Response)
+		close(req.Response)
 	}
 
 }

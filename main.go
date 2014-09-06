@@ -23,12 +23,6 @@ import (
 
 const TAG = "[main]"
 
-type DevNull struct{}
-
-func (DevNull) Write(p []byte) (int, error) {
-	return len(p), nil
-}
-
 var cpuprofile = flag.Bool("cprof", false, "enables or disables cpu profiling")
 var memprofile = flag.Bool("mprof", false, "enables or disables memory profiling")
 var cpucount = flag.Int("threads", 1, "number of threads to use")
@@ -62,8 +56,7 @@ func main() {
 		return
 	}
 
-	l := log.New(new(DevNull), "", 0)
-	dbmy.SetLogger(l)
+	dbmy.LogMode(false)
 
 	dbmy.CreateTable(data.Log{})
 	dbmy.CreateTable(data.Release{})
