@@ -22,6 +22,11 @@
 			"Rev": "330b1c81328751d7a27518abe41ea160d4652a07"
 		},
 		{
+			"ImportPath": "github.com/braintree/manners",
+			"Comment": "0.3.1-2-g5280e25",
+			"Rev": "5280e250f2795914acbeb2bf3b55dd5a2d1fba52"
+		},
+		{
 			"ImportPath": "github.com/go-sql-driver/mysql",
 			"Comment": "v1.2-1-g7094cf0",
 			"Rev": "7094cf0331ed6bde3cd75aa5d1da0e7764b526c9"
@@ -49,10 +54,6 @@
 		{
 			"ImportPath": "github.com/lidashuang/goji_gzip",
 			"Rev": "5864686f51198c49003bf49b6cc64f77cb987b9f"
-		},
-		{
-			"ImportPath": "github.com/mattn/go-sqlite3",
-			"Rev": "1704ea522da54566fb41576db328ea3c44f702d8"
 		},
 		{
 			"ImportPath": "github.com/sirupsen/logrus",
