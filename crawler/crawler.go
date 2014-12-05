@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const TAG = "[crawler]"
+const TAG = "crawler"
 
 type Parser interface {
 	ParseUrlWithClient(url string, client *Client) error
@@ -57,7 +57,7 @@ func (m *Manager) SetClient(s func() Client) {
 }
 
 func (m *Manager) Start() (err error) {
-	log.Infof("%s Manager starting", TAG)
+	log.WithField("tag", TAG).Info("Manager starting")
 	m.end = false
 
 	m.client = m.client_func()
@@ -67,29 +67,29 @@ func (m *Manager) Start() (err error) {
 
 	err = m.client.Login()
 	if err != nil {
-		log.Errorf("%s %s login failed", TAG, m.name)
+		log.WithField("tag", TAG).Errorf("%s login failed", m.name)
 		return
 	} else {
-		log.Infof("%s %s login successful", TAG, m.name)
+		log.WithField("tag", TAG).Infof("%s login successful", m.name)
 	}
 
 	url, err := m.client.GetDailyUrl()
 	if err != nil {
-		log.Errorf("%s %s daily url not found", TAG, m.name)
+		log.WithField("tag", TAG).Errorf("%s daily url not found", m.name)
 		return
 	} else {
-		log.Infof("%s %s daily url: %s", TAG, m.name, url)
+		log.WithField("tag", TAG).Infof("%s daily url: %s", m.name, url)
 	}
 
 	err = m.parser.ParseUrlWithClient(url, &m.client)
 	if err != nil {
-		log.Errorf("%s %s couldnt parse html body", TAG, m.name)
+		log.WithField("tag", TAG).Errorf("%s couldnt parse html body", m.name)
 		return
 	}
 
 	m.maxpage = m.parser.GetMaxPage()
 	if m.maxpage == -1 {
-		log.Errorf("%s %s pagecount failed", TAG, m.name)
+		log.WithField("tag", TAG).Errorf("%s pagecount failed", m.name)
 		return errors.New("pagecount failed")
 	}
 
@@ -105,7 +105,7 @@ func (m *Manager) Start() (err error) {
 		m.parser = m.parser_func()
 		err = m.parser.ParseUrlWithClient(url+"&pp=25&page="+strconv.Itoa(i), &m.client)
 		if err != nil {
-			log.Errorf("%s %s", TAG, err.Error())
+			log.WithField("tag", TAG).Error(err.Error())
 			time.Sleep(2 * time.Second)
 			i++
 			continue
@@ -117,7 +117,7 @@ func (m *Manager) Start() (err error) {
 			m.send_chan <- rel
 		}
 
-		log.Infof("%s %s crawled page %d/%d", TAG, m.name, i, m.maxpage)
+		log.WithField("tag", TAG).Infof("%s crawled page %d/%d", m.name, i, m.maxpage)
 		time.Sleep(2 * time.Second)
 
 		i++
@@ -126,11 +126,11 @@ func (m *Manager) Start() (err error) {
 		}
 
 		if m.end {
-			log.Infof("%s %s shutting down", TAG, m.name)
+			log.WithField("tag", TAG).Infof("%s shutting down", m.name)
 			break
 		}
 
 	}
-	log.Infof("%s %s parser finished", TAG, m.name)
+	log.WithField("tag", TAG).Infof("%s parser finished", m.name)
 	return
 }

@@ -26,8 +26,10 @@ func NewReleases(db *gorm.DB, conf *config.Config) (rel *Releases) {
 }
 
 func (r *Releases) GetReleaseWithId(id int64) (by []byte, err error) {
-	rel := data.Release{Id: id}
-	err = r.db.Model(&rel).First(&rel).Related(&rel.Tags, "Tags").Error
+	//rel := data.Release{Id: id}
+	var rel data.Release
+	//err = r.db.Model(&rel).First(&rel).Related(&rel.Tags, "Tags").Error
+	err = r.db.Where("id = ?", id).First(&rel).Related(&rel.Tags, "Tags").Error
 	if err != nil {
 		return
 	}
@@ -37,8 +39,7 @@ func (r *Releases) GetReleaseWithId(id int64) (by []byte, err error) {
 }
 
 func (r *Releases) GetReleaseImageWithId(id int64) (rel data.Release, err error) {
-	rel = data.Release{Id: id}
-	err = r.db.Model(&rel).First(&rel).Error
+	err = r.db.Where("id = ?", id).First(&rel).Error
 	return
 }
 
@@ -115,8 +116,8 @@ func (r *Releases) ThankReleaseWithId(id int64) ([]byte, error) {
 }
 
 func (r *Releases) GetReleaseLinkWithId(id int64) (url string, err error) {
-	rel := data.Release{Id: id}
-	err = r.db.Model(&rel).First(&rel).UpdateColumn("hits", rel.Hits+1).Error
+	var rel data.Release
+	err = r.db.Where("id = ?", id).First(&rel).UpdateColumn("hits", rel.Hits+1).Error
 	if err != nil {
 		return
 	}
@@ -125,8 +126,8 @@ func (r *Releases) GetReleaseLinkWithId(id int64) (url string, err error) {
 }
 
 func (r *Releases) GetReleaseNzbWithId(id int64) (url string, err error) {
-	rel := data.Release{Id: id}
-	err = r.db.Model(&rel).First(&rel).UpdateColumn("hits", rel.Hits+1).Error
+	var rel data.Release
+	err = r.db.Where("id = ?", id).First(&rel).UpdateColumn("hits", rel.Hits+1).Error
 	if err != nil {
 		return
 	}
@@ -181,7 +182,7 @@ func (r *Releases) GetReleasesWithTags(offset int, tags []string) (by []byte, er
 
 	query := buffer.String()
 
-	log.Infof("%s %s", "[sql]", query)
+	log.WithField("tag", "sql").Infof("%s", query)
 
 	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
@@ -219,7 +220,7 @@ func (r *Releases) GetReleasesWithName(offset int, name string) (by []byte, err 
 	buffer.WriteString(strconv.Itoa(offset))
 
 	query := buffer.String()
-	log.Infof("%s %s", "[sql]", query)
+	log.WithField("tag", "sql").Infof("%s", query)
 
 	rows, err := r.db.Raw(query).Rows()
 	if err != nil {

@@ -21,14 +21,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const TAG = "[main]"
+const TAG = "main"
 
 var cpuprofile = flag.Bool("cprof", false, "enables or disables cpu profiling")
 var memprofile = flag.Bool("mprof", false, "enables or disables memory profiling")
 var cpucount = flag.Int("threads", 1, "number of threads to use")
 
 func main() {
-
 	flag.Parse()
 
 	if *cpuprofile {
@@ -45,14 +44,14 @@ func main() {
 
 	conf, err := config.Load("default.ini")
 	if err != nil {
-		logrus.Fatalf("%s error loading config: %s", TAG, err.Error())
+		logrus.WithField("tag", TAG).Fatalf("error loading config: %s", err.Error())
 		return
 	}
 
 	login := fmt.Sprintf("%s:%s@/%s", conf.DBUser, conf.DBPassword, conf.DBName)
 	dbmy, err := gorm.Open("mysql", login)
 	if err != nil {
-		logrus.Fatalf("%s error connecting to db: %s", TAG, err.Error())
+		logrus.WithField("tag", TAG).Fatalf("error connecting to db: %s", err.Error())
 		return
 	}
 
@@ -73,8 +72,7 @@ func main() {
 	if conf.Crawl {
 		run, err := runner.NewRunner(&dbmy, conf)
 		if err != nil {
-			logrus.Fatalf("%s error starting runner: %s", TAG, err.Error())
-			return
+			logrus.WithField("tag", TAG).Fatalf("error starting runner: %s", err.Error())
 		}
 		go run.Start(exit)
 	}
@@ -87,7 +85,7 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func(s *web.Server) {
 		for sig := range c {
-			logrus.Infof("%s captured %v, starting to shutdown", TAG, sig)
+			logrus.WithField("tag", TAG).Infof("captured %v, starting to shutdown", sig)
 			if *memprofile {
 				f, err := os.Create("mem.prof")
 				if err != nil {
@@ -105,7 +103,8 @@ func main() {
 	close(exit)
 	time.Sleep(time.Second * 1)
 	dbmy.Close()
-	log.Printf("%s shutdown finished\n", TAG)
-	pprof.StopCPUProfile()
+	if *cpuprofile {
+		pprof.StopCPUProfile()
+	}
 	os.Exit(1)
 }

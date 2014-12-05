@@ -1,3 +1,3 @@
 package town
 
-const TAG = "[town]"
+const TAG = "town"

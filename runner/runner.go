@@ -7,7 +7,6 @@ import (
 
 	"github.com/Kemonozume/nzbcrawler/config"
 	"github.com/Kemonozume/nzbcrawler/crawler"
-	"github.com/Kemonozume/nzbcrawler/crawler/ghost"
 	"github.com/Kemonozume/nzbcrawler/crawler/town"
 	"github.com/Kemonozume/nzbcrawler/data"
 	"github.com/go-sql-driver/mysql"
@@ -23,7 +22,7 @@ type Runner struct {
 }
 
 const (
-	TAG    = "[runner]"
+	TAG    = "runner"
 	EXISTS = "SELECT id from releases WHERE checksum = ?"
 )
 
@@ -47,32 +46,32 @@ func (r *Runner) initCrawler() {
 	man.SetParser(func() crawler.Parser { return &town.TownParser{} })
 	r.Manager["town"] = man
 
-	man2 := crawler.NewManager(r.Config.GhostUser, r.Config.GhostPassword, "ghost", r.RecvChan)
+	/*man2 := crawler.NewManager(r.Config.GhostUser, r.Config.GhostPassword, "ghost", r.RecvChan)
 	man2.SetClient(func() crawler.Client { return ghost.NewClient() })
 	man2.SetParser(func() crawler.Parser { return &ghost.GhostParser{} })
-	r.Manager["ghost"] = man2
+	r.Manager["ghost"] = man2*/
 }
 
 func (r *Runner) Start(ex chan bool) {
 	r.initCrawler()
-	log.Infof("%s starting", TAG)
+	log.WithField("tag", TAG).Info("starting")
 	for _, man := range r.Manager {
 		go man.Start()
 	}
 
 	ticker := time.NewTicker(r.Timeout)
-	log.Infof("%s timeout is %s", TAG, r.Timeout)
+	log.WithField("tag", TAG).Infof("timeout is %s", r.Timeout)
 	for {
 		select {
 		case <-ticker.C:
-			log.Infof("%s tick crawler", TAG)
+			log.WithField("tag", TAG).Info("tick crawler")
 			for _, man := range r.Manager {
 				go man.Start()
 			}
 		case releases := <-r.RecvChan:
 			r.saveReleases(releases)
 		case <-ex:
-			log.Infof("%s closing", TAG)
+			log.WithField("tag", TAG).Info("closing")
 			for _, man := range r.Manager {
 				man.SetEnd(true)
 			}
@@ -85,7 +84,7 @@ func (r *Runner) Start(ex chan bool) {
 func (r *Runner) saveReleases(releases []data.Release) {
 	rel := releases[len(releases)-1]
 	if r.EndPointFunction(releases[0]) {
-		log.Infof("%s %s %s found endpoint", TAG, rel.Name, releases[0].Name)
+		log.WithField("tag", TAG).Infof("%s %s found endpoint", rel.Name, releases[0].Name)
 		r.Manager[rel.Name].SetEnd(true)
 		return
 	} else {
@@ -96,11 +95,11 @@ func (r *Runner) saveReleases(releases []data.Release) {
 				if err != nil {
 					if err.Error() == "Record Not Found" {
 						newtag := data.Tag{Value: tag.Value, Weight: 1}
-						log.Infof("%s creating new tag %v", TAG, newtag)
+						log.WithField("tag", TAG).Infof("creating new tag %v", newtag)
 						r.DB.Create(&newtag)
 						release.Tags[i] = newtag
 					} else {
-						log.Errorf("%s %s", TAG, err.Error())
+						log.WithField("tag", TAG).Error(err.Error())
 					}
 
 				} else {
@@ -115,17 +114,17 @@ func (r *Runner) saveReleases(releases []data.Release) {
 				case *mysql.MySQLError:
 					//error 1062 is duplicate
 					if err.(*mysql.MySQLError).Number != 1062 {
-						log.Errorf("%s %s", TAG, err.Error())
+						log.WithField("tag", TAG).Error(err.Error())
 					}
 
 				default:
 					if err.Error() != "UNIQUE constraint failed: releases.checksum" {
-						log.Errorf("%s failed to save release %+v", TAG, release)
-						log.Errorf("%s error: %s", TAG, err.Error())
+						log.WithField("tag", TAG).Errorf("failed to save release %+v", release)
+						log.WithField("tag", TAG).Error(err.Error())
 					}
 				}
 			} else {
-				log.Infof("%s saved %s", TAG, release.Name)
+				log.WithField("tag", TAG).Infof("saved %s", release.Name)
 			}
 		}
 	}

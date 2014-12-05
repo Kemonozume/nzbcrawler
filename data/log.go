@@ -3,7 +3,6 @@ package data
 import (
 	"encoding/json"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -21,6 +20,7 @@ type logwrap struct {
 	Level string    `json:"level"`
 	Msg   string    `json:"msg"`
 	Time  time.Time `json:"time"`
+	Tag   string    `json:"tag"`
 }
 
 type DBLog struct {
@@ -30,8 +30,6 @@ type DBLog struct {
 func (d DBLog) Write(p []byte) (int, error) {
 	logtmp := logwrap{}
 	log1 := Log{}
-	message := ""
-	tag := ""
 
 	err := json.Unmarshal(p, &logtmp)
 	if err != nil {
@@ -39,20 +37,11 @@ func (d DBLog) Write(p []byte) (int, error) {
 		return len(p), nil
 	}
 
-	log.Printf("%s %s", logtmp.Level, logtmp.Msg)
-	if strings.Contains(logtmp.Msg, "]") {
-		msg := strings.Split(logtmp.Msg, "]")
-
-		tag = msg[0][1:]
-		message = msg[1][1:]
-	} else {
-		tag = "main"
-		message = logtmp.Msg
-	}
+	log.Printf("[%s] [%s] %s", logtmp.Level, logtmp.Tag, logtmp.Msg)
 
 	log1.Level = logtmp.Level
-	log1.Message = message
-	log1.Tag = tag
+	log1.Message = logtmp.Msg
+	log1.Tag = logtmp.Tag
 	log1.Time = logtmp.Time.Unix()
 	err = d.DB.Create(&log1).Error
 	if err != nil {

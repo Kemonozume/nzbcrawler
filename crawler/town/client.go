@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"time"
 
 	"strings"
 
@@ -12,11 +13,29 @@ import (
 )
 
 const (
-	DAILY  = "http://www.town.ag/v2/search.php?do=getnew"
-	LOGIN  = "http://www.town.ag/v2/login.php?do=login"
-	ROOT   = "http://www.town.ag/v2/"
-	THANKS = "http://www.town.ag/v2/ajax.php"
+	DAILY   = "http://www.town.ag/v2/search.php?do=getnew"
+	LOGIN   = "http://www.town.ag/v2/login.php?do=login"
+	ROOT    = "http://www.town.ag/v2/"
+	THANKS  = "http://www.town.ag/v2/ajax.php"
+	TIMEOUT = time.Duration(2 * time.Second)
 )
+
+var client *http.Client = &http.Client{
+	Timeout: TIMEOUT,
+	Transport: &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		DisableKeepAlives: true,
+	},
+}
+
+var clientRed *http.Client = &http.Client{
+	Timeout:       TIMEOUT,
+	CheckRedirect: Redirect,
+	Transport: &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		DisableKeepAlives: true,
+	},
+}
 
 func Redirect(req *http.Request, via []*http.Request) error {
 	return errors.New("bla")
@@ -50,13 +69,13 @@ func (t TownClient) IsLoggedIn() bool {
 }
 
 func (t *TownClient) getSValue() (sValue string) {
-	log.Infof("%s getting sValue for town login", TAG)
+	log.WithField("tag", TAG).Info("getting sValue for town login")
 	sValue = ""
 	var doc *goquery.Document
 	var e error
-	log.Infof("%s GET %v", TAG, ROOT)
+	log.WithField("tag", TAG).Infof("GET %v", ROOT)
 	if doc, e = goquery.NewDocument(ROOT); e != nil {
-		log.Errorf("%s %s", TAG, e.Error())
+		log.WithField("tag", TAG).Errorf("%s", e.Error())
 		return
 	}
 
@@ -72,13 +91,13 @@ func (t *TownClient) getSValue() (sValue string) {
 		}
 
 	})
-	log.Infof("%s sValue: %v", TAG, sValue)
+	log.WithField("tag", TAG).Infof("sValue: %v", sValue)
 	return sValue
 }
 
 // Logs into town.ag and returns the response cookies
 func (t *TownClient) Login() error {
-	log.Infof("%s login process started", TAG)
+	log.WithField("tag", TAG).Info("login process started")
 
 	sValue := t.getSValue()
 
@@ -97,13 +116,12 @@ func (t *TownClient) Login() error {
 	param.Add("vb_login_md5password_utf", t.Password)
 	param.Add("url", "/v2/")
 
-	client := &http.Client{}
 	req, err := http.NewRequest("POST", LOGIN, strings.NewReader(param.Encode()))
 	if err != nil {
 		return err
 	}
 
-	log.Infof("%s POST %v", TAG, LOGIN)
+	log.WithField("tag", TAG).Infof("POST %v", LOGIN)
 	t.addHeader(req)
 
 	resp, err := client.Do(req)
@@ -111,22 +129,21 @@ func (t *TownClient) Login() error {
 		return err
 	}
 
-	defer resp.Body.Close()
-
 	t.cookies = resp.Cookies()
 
 	t.logged_in = true
+	resp.Close = true
+	resp.Body.Close()
 	return nil
 }
 
 //http get using the given sUrl
 func (t *TownClient) Get(sUrl string) (*http.Response, error) {
-	log.Infof("%s GET %v", TAG, sUrl)
+	log.WithField("tag", TAG).Infof("GET %v", sUrl)
 
-	client := &http.Client{}
 	req, err := http.NewRequest("GET", sUrl, nil)
 	if err != nil {
-		log.Errorf("%s couldn't create Request to: %v", TAG, sUrl)
+		log.WithField("tag", TAG).Errorf("couldn't create Request to: %v", sUrl)
 		return nil, err
 	}
 
@@ -141,7 +158,7 @@ func (t *TownClient) Get(sUrl string) (*http.Response, error) {
 	//connect to sUrl
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Errorf("%s couldn't connect to: %v", TAG, sUrl)
+		log.WithField("tag", TAG).Errorf("couldn't connect to: %v", sUrl)
 		return nil, err
 	}
 
@@ -150,13 +167,11 @@ func (t *TownClient) Get(sUrl string) (*http.Response, error) {
 
 //return the Daily url or "" if something went wrong
 func (t *TownClient) GetDailyUrl() (string, error) {
-	log.Infof("%s getting Daily Url for town", TAG)
-	client := &http.Client{
-		CheckRedirect: Redirect,
-	}
+	log.WithField("tag", TAG).Info("getting Daily Url for town")
+
 	req, err := http.NewRequest("GET", DAILY, nil)
 	if err != nil {
-		log.Errorf("%s %s", TAG, err.Error())
+		log.WithField("tag", TAG).Error(err.Error())
 		return "", err
 	}
 
@@ -168,10 +183,12 @@ func (t *TownClient) GetDailyUrl() (string, error) {
 		}
 	}
 
-	resp, err := client.Do(req)
+	resp, err := clientRed.Do(req)
 	if resp == nil {
 		return "", err
 	}
+
+	resp.Close = true
 	defer resp.Body.Close()
 
 	lv := resp.Header.Get("Location")
@@ -184,7 +201,7 @@ func (t *TownClient) GetDailyUrl() (string, error) {
 
 //execute ajax thank request for a post
 func (t *TownClient) ThankPost(postid string, token string) (err error) {
-	log.Infof("%s thanking post %s", TAG, postid)
+	log.WithField("tag", TAG).Infof("thanking post %s", postid)
 
 	param := url.Values{}
 	param.Set("do", "thanks")
@@ -192,13 +209,12 @@ func (t *TownClient) ThankPost(postid string, token string) (err error) {
 	param.Add("securitytoken", token)
 	param.Add("s", "")
 
-	client := &http.Client{}
 	req, err := http.NewRequest("POST", THANKS, strings.NewReader(param.Encode()))
 	if err != nil {
 		return
 	}
 
-	log.Infof("%s POST url: %v", TAG, THANKS)
+	log.WithField("tag", TAG).Infof("POST url: %v", THANKS)
 	t.addHeader(req)
 	if t.cookies != nil {
 		for _, cookie := range t.cookies {
@@ -211,7 +227,8 @@ func (t *TownClient) ThankPost(postid string, token string) (err error) {
 		return
 	}
 
-	defer resp.Body.Close()
+	resp.Close = true
+	resp.Body.Close()
 	return
 }
 
@@ -223,8 +240,7 @@ func (t *TownClient) addHeader(req *http.Request) {
 	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	req.Header.Add("Accept-Language", "de-DE,de;q=0.8,en-US;q=0.6,en;q=0.4")
 	req.Header.Add("Cache-Control", "max-age=0")
-	req.Header.Add("Connection", "keep-alive")
+	req.Header.Add("Accept-Encoding", "gzip, deflate")
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Pragma", "no-cache")
-	req.Header.Add("DNT", "1")
 }

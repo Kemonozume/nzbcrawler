@@ -1,0 +1,15 @@
+[deps]
+github.com/BurntSushi/toml = 
+github.com/PuerkitoBio/goquery = 
+github.com/braintree/manners = 
+github.com/go-sql-driver/mysql = 
+github.com/gorilla/context = 
+github.com/gorilla/sessions = 
+github.com/jinzhu/gorm = 
+github.com/lidashuang/goji_gzip = 
+github.com/sirupsen/logrus = 
+github.com/zenazn/goji = 
+
+[res]
+include = templates
+

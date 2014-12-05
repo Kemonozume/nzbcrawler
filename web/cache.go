@@ -185,7 +185,7 @@ func (c *Cache) freeMemory() {
 		return
 	}
 	c.isRunning = true
-	log.Info("[Cache] freeMemory() cachesize: %vmb, size to be freed: %vmb", c.GetSizeInMb(), (c.sizefree / 1024 / 1024))
+	log.WithField("tag", "cache").Infof("freeMemory() cachesize: %vmb, size to be freed: %vmb", c.GetSizeInMb(), (c.sizefree / 1024 / 1024))
 	low := uint32(1)
 	count := c.GetSize()
 	start := time.Now()
@@ -216,12 +216,12 @@ func (c *Cache) freeMemory() {
 		}
 	}
 	end := time.Now()
-	log.Info("[Cache] removed %v elements in %fsec", count-c.GetSize(), end.Sub(start).Seconds())
+	log.WithField("tag", "cache").Infof("removed %v elements in %fsec", count-c.GetSize(), end.Sub(start).Seconds())
 	start = time.Now()
 	runtime.GC()
 	debug.FreeOSMemory()
 	end = time.Now()
-	log.Info("[Cache] run gc manually to free up memory asap, took %fsec", end.Sub(start).Seconds())
+	log.WithField("tag", "cache").Infof("run gc manually to free up memory asap, took %fsec", end.Sub(start).Seconds())
 	c.isRunning = false
 }
 

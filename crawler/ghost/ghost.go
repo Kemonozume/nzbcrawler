@@ -1,3 +1,3 @@
 package ghost
 
-const TAG = "[ghost]"
+const TAG = "ghost"

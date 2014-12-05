@@ -42,6 +42,7 @@ func NewTownParserWithClient(url string, client *TownClient) (tp *TownParser, er
 	}
 
 	defer resp.Body.Close()
+	resp.Close = true
 
 	bv, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -70,6 +71,7 @@ func (tp *TownParser) ParseUrlWithClient(url string, client *crawler.Client) (er
 	}
 
 	defer resp.Body.Close()
+	resp.Close = true
 
 	bv, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -244,7 +246,5 @@ func (tp *TownParser) checkCat(r *data.Release, subforum string) {
 		r.AddTag("music")
 		r.AddTag("lossless")
 	default:
-		r.AddTag("no_cat")
-
 	}
 }

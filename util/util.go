@@ -8,6 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const TAG = "util"
+
 func BytesToUtf8(iso8859_1_buf []byte) []byte {
 	buf := make([]rune, len(iso8859_1_buf))
 	for i, b := range iso8859_1_buf {
@@ -19,7 +21,7 @@ func BytesToUtf8(iso8859_1_buf []byte) []byte {
 func DumpRequest(req *http.Request, name string) {
 	dump1, err := httputil.DumpRequestOut(req, true)
 	if err != nil {
-		log.Errorf("dump of %v request failed", name)
+		log.WithField("tag", TAG).Errorf("dump of %v request failed", name)
 	}
 	ioutil.WriteFile(name, dump1, 0777)
 }
@@ -27,7 +29,7 @@ func DumpRequest(req *http.Request, name string) {
 func DumpResponse(resp *http.Response, name string) {
 	dump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		log.Errorf("log failed for get Request")
+		log.WithField("tag", TAG).Errorf("log failed for get Request")
 	}
 	ioutil.WriteFile(name, dump, 0777)
 }

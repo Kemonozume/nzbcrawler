@@ -16,7 +16,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"code.google.com/p/go.net/html"
+	"golang.org/x/net/html"
 )
 
 type GhostParser struct {
@@ -41,6 +41,7 @@ func (g *GhostParser) ParseUrlWithClient(url string, client *crawler.Client) (er
 	}
 
 	defer resp.Body.Close()
+	resp.Close = true
 
 	bv, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -95,10 +96,11 @@ func (g *GhostParser) getImageUrl(url string) (url2 string) {
 	cl := *g.client
 	resp, err := cl.Get(url)
 	if err != nil {
-		log.Errorf("%s %s", TAG, err.Error())
+		log.WithField("tag", TAG).Error(err.Error())
 		return url2
 	}
 	defer resp.Body.Close()
+	resp.Close = true
 
 	respbody, err := html.Parse(resp.Body)
 	doc := goquery.NewDocumentFromNode(respbody)
@@ -127,7 +129,7 @@ func (g *GhostParser) clearUrl(url string) string {
 func (g *GhostParser) getBoardId(str string) int {
 	regex, err := regexp.Compile("boardid=.+&")
 	if err != nil {
-		log.Errorf("%s %s", TAG, err.Error())
+		log.WithField("tag", TAG).Error(err.Error())
 		return -1
 	}
 
@@ -139,7 +141,7 @@ func (g *GhostParser) getBoardId(str string) int {
 	}
 	i, err := strconv.Atoi(astr[1])
 	if err != nil {
-		log.Errorf("%s %s", TAG, err.Error())
+		log.WithField("tag", TAG).Errorf(err.Error())
 		return -1
 	}
 	return i
@@ -302,7 +304,5 @@ func (g *GhostParser) checkCat(r *data.Release, boardid int) {
 		r.AddTag("xxx")
 		r.AddTag("sd")
 	default:
-		r.AddTag("no_cat")
-
 	}
 }

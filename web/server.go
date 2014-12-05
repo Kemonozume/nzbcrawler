@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/pprof"
+
 	"strings"
 	"text/template"
 	"time"
@@ -50,7 +51,7 @@ type statwrap struct {
 }
 
 const (
-	TAG          = "[web]"
+	TAG          = "web"
 	LIMIT        = 100
 	HITCOUNT     = "SELECT SUM(hits) FROm releases"
 	TAGCOUNT     = "SELECT COUNT(*) FROM tags"
@@ -80,7 +81,7 @@ func (s *Server) watcher() {
 		case <-ticker.C:
 			err := RefreshStats(s.Cache, s.DB)
 			if err != nil {
-				log.Error(err.Error())
+				log.WithField("tag", TAG).Errorf("watcher error: %v", err.Error())
 			}
 		}
 	}
@@ -157,11 +158,10 @@ func (s *Server) Init() {
 	}
 
 	goji.NotFound(NotFound)
-
 	goji.Abandon(middleware.Logger)
 
 	addr := fmt.Sprintf("%s:%s", s.Config.Host, s.Config.Port)
-	log.Infof("%s listening on %s", TAG, addr)
+	log.WithField("tag", TAG).Infof("listening on %s", addr)
 
 	serv = manners.NewServer()
 	serv.InnerServer = http.Server{
@@ -177,14 +177,14 @@ func (s *Server) Init() {
 		panic(err)
 	}
 
-	log.Infof("%s closing", TAG)
+	log.WithField("tag", TAG).Info("closing")
 }
 
 func HandleError(w http.ResponseWriter, r *http.Request, err error, details ...interface{}) {
 	if len(details) > 2 {
-		log.Errorf("%s %s | details: %s | %s", TAG, err.Error(), details[2].(string), r.URL.String())
+		log.WithField("tag", TAG).Errorf("%s | details: %s | %s", err.Error(), details[2].(string), r.URL.String())
 	} else {
-		log.Errorf("%s %s | %s", TAG, err.Error(), r.URL.String())
+		log.WithField("tag", TAG).Errorf("%s | %s", err.Error(), r.URL.String())
 	}
 
 	message := "Umm... have you tried turning it off and on again?"
@@ -202,7 +202,7 @@ func HandleError(w http.ResponseWriter, r *http.Request, err error, details ...i
 
 func HandleRecovery() {
 	if r := recover(); r != nil {
-		log.Infof("%s recovered %v", TAG, r)
+		log.WithField("tag", TAG).Infof("recovered %v", r)
 	}
 }
 
@@ -210,7 +210,7 @@ func LogTime(url string, start time.Time) {
 	if strings.Contains(url, "/image") || strings.Contains(url, "/assets/") {
 		return
 	}
-	log.Infof("%s GET %s in %s", TAG, url, time.Since(start))
+	log.WithField("tag", TAG).Infof("GET %s in %s", url, time.Since(start))
 }
 
 func (s *Server) Login(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -220,10 +220,10 @@ func (s *Server) Login(c web.C, w http.ResponseWriter, r *http.Request) {
 		session.Values["logged_in"] = true
 		session.Values["ip"] = strings.Split(r.RemoteAddr, ":")[0]
 		session.Save(r, w)
-		log.Warningf("%s %s managed to log in", TAG, r.RemoteAddr)
+		log.WithField("tag", TAG).Warningf("%s managed to log in", r.RemoteAddr)
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	} else {
-		log.Warningf("%s %s failed to log in with key %s", TAG, r.RemoteAddr, key)
+		log.WithField("tag", TAG).Warningf("%s failed to log in with key %s", r.RemoteAddr, key)
 		http.Error(w, "nope", http.StatusForbidden)
 	}
 }
