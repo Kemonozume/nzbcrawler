@@ -1,0 +1,68 @@
+{
+	"ImportPath": "github.com/Kemonozume/nzbcrawler",
+	"GoVersion": "go1.3",
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/cascadia",
+			"Comment": "null-30",
+			"Rev": "4f03c71bc42ba0015a68bea86422f0ecbb71bf70"
+		},
+		{
+			"ImportPath": "code.google.com/p/go.net/html",
+			"Comment": "null-143",
+			"Rev": "6a58d15273e127ff2697fa5a848435af0ea1255d"
+		},
+		{
+			"ImportPath": "github.com/BurntSushi/toml",
+			"Rev": "2ceedfee35ad3848e49308ab0c9a4f640cfb5fb2"
+		},
+		{
+			"ImportPath": "github.com/PuerkitoBio/goquery",
+			"Comment": "v0.3.2-26-g330b1c8",
+			"Rev": "330b1c81328751d7a27518abe41ea160d4652a07"
+		},
+		{
+			"ImportPath": "github.com/braintree/manners",
+			"Comment": "0.3.1-2-g5280e25",
+			"Rev": "5280e250f2795914acbeb2bf3b55dd5a2d1fba52"
+		},
+		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.2-1-g7094cf0",
+			"Rev": "7094cf0331ed6bde3cd75aa5d1da0e7764b526c9"
+		},
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "14f550f51af52180c2eefed15e5fd18d63c0a64a"
+		},
+		{
+			"ImportPath": "github.com/gorilla/securecookie",
+			"Rev": "1b0c7f6e9ab3d7f500fd7d50c7ad835ff428139b"
+		},
+		{
+			"ImportPath": "github.com/gorilla/sessions",
+			"Rev": "aa5e036e6c44aec69a32eb41097001978b29ad31"
+		},
+		{
+			"ImportPath": "github.com/jinzhu/gorm",
+			"Rev": "131b5049412ee616bb633dce7f2dd7cf6e314098"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/hstore",
+			"Rev": "3e0659e626f761e9af7a8bd1c8b6aaea6770495b"
+		},
+		{
+			"ImportPath": "github.com/lidashuang/goji_gzip",
+			"Rev": "5864686f51198c49003bf49b6cc64f77cb987b9f"
+		},
+		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "v0.5.0",
+			"Rev": "d1c2d610bd8d921fcffc4791c204eafa634e2956"
+		},
+		{
+			"ImportPath": "github.com/zenazn/goji",
+			"Rev": "17b9035bcd162f59e1a1247d4a755124c37052c5"
+		}
+	]
+}
